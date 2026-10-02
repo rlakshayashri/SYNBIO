@@ -1,0 +1,42 @@
+# Environments & Configuration
+.env
+.env.local
+.venv/
+env/
+venv/
+ENV/
+
+# Python & Caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node / Frontend Caches
+node_modules/
+.next/
+dist/
+build/
+.nuxt/
+
+# Local scientific datasets & storage
+backend/data/
+backend/storage/
+*.csv
+*.xlsx
+*.parquet
+!backend/tests/fixtures/*.csv
+
+# OS specific
+.DS_Store
+Thumbs.db

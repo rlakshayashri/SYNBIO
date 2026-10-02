@@ -1,0 +1,6 @@
+sample_id,concentration,temperature,absorbance,notes
+S01,10.5,25.0,0.45,
+S02,12.0,25.2,0.51,
+S02,12.0,25.2,0.51,
+S04,,25.1,0.73,
+S05,20.5,25.0,999.0,
