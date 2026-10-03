@@ -31,9 +31,7 @@ class Analysis(Base):
     parameters: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     result: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     software_version: Mapped[str] = mapped_column(String(50), nullable=False, default="0.1.0")
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     dataset: Mapped["Dataset"] = relationship("Dataset", back_populates="analyses")

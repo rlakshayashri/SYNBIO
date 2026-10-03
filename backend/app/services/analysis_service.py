@@ -18,9 +18,7 @@ class AnalysisService:
         """Retrieves a single analysis record by ID."""
         return self.db.scalar(select(Analysis).where(Analysis.id == analysis_id))
 
-    def list_by_dataset(
-        self, dataset_id: UUID, skip: int = 0, limit: int = 100
-    ) -> Sequence[Analysis]:
+    def list_by_dataset(self, dataset_id: UUID, skip: int = 0, limit: int = 100) -> Sequence[Analysis]:
         """Lists analyses run for a specific dataset."""
         stmt = (
             select(Analysis)

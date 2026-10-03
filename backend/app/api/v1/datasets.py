@@ -6,9 +6,18 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import DatasetNotFoundError
 from app.db.session import get_db
 from app.schemas.dataset import DatasetPreviewResponse, DatasetResponse
+from app.schemas.statistical_analysis import (
+    StatisticalAnalysisRequestSchema,
+    StatisticalAnalysisResponseSchema,
+)
+from app.schemas.statistics import DescriptiveStatisticsResult
 from app.schemas.validation import ValidationResult
+from app.schemas.visualization import VisualizationRequest, VisualizationResult
 from app.services.dataset_service import DatasetService
+from app.services.statistical_analysis_service import StatisticalAnalysisService
+from app.services.statistics_service import StatisticsService
 from app.services.validation_service import ValidationService
+from app.services.visualization_service import VisualizationService
 
 router = APIRouter()
 
@@ -86,3 +95,42 @@ def validate_dataset(dataset_id: UUID, db: Session = Depends(get_db)) -> Validat
     """Executes data quality checks (missing values, duplicates, dtypes, empty columns, outliers) on a dataset."""
     service = ValidationService(db)
     return service.run_validation(dataset_id=dataset_id)
+
+
+@router.post(
+    "/{dataset_id}/statistics",
+    response_model=DescriptiveStatisticsResult,
+    summary="Calculate Descriptive Statistics for Numeric Columns",
+)
+def calculate_dataset_statistics(dataset_id: UUID, db: Session = Depends(get_db)) -> DescriptiveStatisticsResult:
+    """Calculates basic and distribution descriptive statistics for all numeric columns in a dataset."""
+    service = StatisticsService(db)
+    return service.run_descriptive_statistics(dataset_id=dataset_id)
+
+
+@router.post(
+    "/{dataset_id}/visualizations",
+    response_model=VisualizationResult,
+    summary="Generate Scientific Visualization Plot",
+)
+def generate_dataset_visualization(
+    dataset_id: UUID, request: VisualizationRequest, db: Session = Depends(get_db)
+) -> VisualizationResult:
+    """Generates a structured scientific visualization (histogram, boxplot, scatter, or bar chart)."""
+    service = VisualizationService(db)
+    return service.run_visualization(dataset_id=dataset_id, request=request)
+
+
+@router.post(
+    "/{dataset_id}/statistical-analysis",
+    response_model=StatisticalAnalysisResponseSchema,
+    summary="Execute Statistical Hypothesis Test",
+)
+def execute_statistical_analysis(
+    dataset_id: UUID,
+    request: StatisticalAnalysisRequestSchema,
+    db: Session = Depends(get_db),
+) -> StatisticalAnalysisResponseSchema:
+    """Executes a transparent statistical hypothesis test (t-test, ANOVA, non-parametric, or correlation)."""
+    service = StatisticalAnalysisService(db)
+    return service.run_statistical_analysis(dataset_id=dataset_id, request=request)

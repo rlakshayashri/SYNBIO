@@ -37,9 +37,7 @@ class DatasetService:
         """Retrieves a single dataset by ID."""
         return self.db.scalar(select(Dataset).where(Dataset.id == dataset_id))
 
-    def list_by_project(
-        self, project_id: UUID, skip: int = 0, limit: int = 100
-    ) -> Sequence[Dataset]:
+    def list_by_project(self, project_id: UUID, skip: int = 0, limit: int = 100) -> Sequence[Dataset]:
         """Lists datasets belonging to a specific project."""
         stmt = (
             select(Dataset)

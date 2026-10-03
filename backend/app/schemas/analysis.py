@@ -8,12 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class AnalysisBase(BaseModel):
     """Base schema with common Analysis attributes."""
 
-    analysis_type: str = Field(
-        ..., min_length=1, max_length=100, description="Type of scientific analysis"
-    )
-    parameters: dict[str, Any] = Field(
-        default_factory=dict, description="Analysis input parameters"
-    )
+    analysis_type: str = Field(..., min_length=1, max_length=100, description="Type of scientific analysis")
+    parameters: dict[str, Any] = Field(default_factory=dict, description="Analysis input parameters")
     result: dict[str, Any] = Field(default_factory=dict, description="Analysis output results")
     software_version: str = Field("0.1.0", description="Version of scientific software engine")
 

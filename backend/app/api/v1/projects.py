@@ -23,9 +23,7 @@ def create_project(schema: ProjectCreate, db: Session = Depends(get_db)) -> Proj
 
 
 @router.get("", response_model=list[ProjectResponse], summary="List Projects")
-def list_projects(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
-) -> list[ProjectResponse]:
+def list_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> list[ProjectResponse]:
     """Lists projects with pagination."""
     service = ProjectService(db)
     return list(service.list_all(skip=skip, limit=limit))
@@ -37,7 +35,5 @@ def get_project(project_id: UUID, db: Session = Depends(get_db)) -> ProjectRespo
     service = ProjectService(db)
     project = service.get_by_id(project_id)
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Project '{project_id}' not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Project '{project_id}' not found")
     return project

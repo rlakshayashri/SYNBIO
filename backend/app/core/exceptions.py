@@ -34,3 +34,9 @@ class DatasetTooLargeError(SynDataXError):
     """Raised when an uploaded file exceeds the configured size limit."""
 
     pass
+
+
+class ScientificValidationError(SynDataXError):
+    """Raised when scientific parameters or calculations fail validation."""
+
+    pass
