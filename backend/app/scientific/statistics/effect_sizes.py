@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from app.scientific.statistics.models import EffectSizeResult
 
@@ -96,6 +97,39 @@ def calculate_rank_biserial(u_stat: float, n1: int, n2: int) -> EffectSizeResult
         interp = "large"
 
     return EffectSizeResult(name="Rank-Biserial r", value=round(r, 4), interpretation=interp)
+
+
+def calculate_wilcoxon_r(z_stat: float | None, p_value: float | None, n_pairs: int) -> EffectSizeResult:
+    """Calculates standardized matched-pairs effect size r = |Z| / sqrt(N) for Wilcoxon Signed-Rank test.
+
+    References:
+        Rosenthal, R. (1991). Meta-analytic procedures for social research. Sage.
+        Tomczak, M., & Tomczak, E. (2014). The need to report effect size estimates in
+        neuropsychological research. Trends in Sport Sciences, 1(21), 19-25.
+    """
+    if n_pairs <= 0:
+        return EffectSizeResult(name="Wilcoxon r", value=None, interpretation="Invalid sample size")
+
+    if z_stat is not None and not np.isnan(z_stat):
+        z = abs(float(z_stat))
+    elif p_value is not None and 0.0 < p_value < 1.0:
+        z = abs(float(stats.norm.ppf(1.0 - p_value / 2.0)))
+    else:
+        z = 0.0
+
+    r = float(z / np.sqrt(n_pairs))
+    abs_r = abs(r)
+
+    if abs_r < 0.1:
+        interp = "negligible"
+    elif abs_r < 0.3:
+        interp = "small"
+    elif abs_r < 0.5:
+        interp = "medium"
+    else:
+        interp = "large"
+
+    return EffectSizeResult(name="Wilcoxon r", value=round(r, 4), interpretation=interp)
 
 
 def calculate_epsilon_squared(h_stat: float, total_n: int) -> EffectSizeResult:

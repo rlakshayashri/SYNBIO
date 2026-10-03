@@ -8,6 +8,7 @@ from app.core.exceptions import ScientificValidationError
 from app.scientific.statistics.effect_sizes import (
     calculate_epsilon_squared,
     calculate_rank_biserial,
+    calculate_wilcoxon_r,
 )
 from app.scientific.statistics.models import (
     AnalysisCategory,
@@ -182,12 +183,19 @@ def run_nonparametric_group_comparison(
         stat, p_val = stats.wilcoxon(s1, s2)
         stat_name = "W"
         test_title = "Wilcoxon Signed-Rank Test"
-        effect_size = calculate_rank_biserial(float(stat), n1, n2)
+        try:
+            res_approx = stats.wilcoxon(s1, s2, method="approx")
+            z_stat = getattr(res_approx, "zstatistic", None)
+        except Exception:
+            z_stat = None
+        effect_size = calculate_wilcoxon_r(z_stat, float(p_val), n1)
+        effect_size_label = f"Wilcoxon r = {effect_size.value}"
     else:
         stat, p_val = stats.mannwhitneyu(s1, s2, alternative="two-sided")
         stat_name = "U"
         test_title = "Mann-Whitney U Test"
         effect_size = calculate_rank_biserial(float(stat), n1, n2)
+        effect_size_label = f"Rank-Biserial r = {effect_size.value}"
 
     stat_val = float(stat) if not np.isnan(stat) else None
     p_val_float = float(p_val) if not np.isnan(p_val) else None
@@ -196,7 +204,7 @@ def run_nonparametric_group_comparison(
     statement = (
         f"{test_title} comparing '{g1_label}' (N={n1}) and '{g2_label}' (N={n2}) returned "
         f"{stat_name} = {stat_val:.4f}, p = {p_val_float:.4f} at α = {alpha} "
-        f"(Effect Size: {effect_size.interpretation}, Rank-Biserial r = {effect_size.value})."
+        f"(Effect Size: {effect_size.interpretation}, {effect_size_label})."
     )
 
     return StatisticalAnalysisResult(

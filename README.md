@@ -59,13 +59,18 @@ SynDataX/
 
 Follow these steps to set up the backend locally:
 
-### 1. Start PostgreSQL Database
+### 1. Start PostgreSQL Database (Official / Recommended)
 
-Use Docker Compose to launch PostgreSQL:
+Use Docker Compose to launch PostgreSQL 16:
 
 ```bash
 docker compose -f database/docker-compose.yml up -d
 ```
+
+> [!NOTE]
+> **Database Options:**
+> - **Official / Recommended:** PostgreSQL 16 (default `DATABASE_URL=postgresql+psycopg://syndatax:syndatax@localhost:5432/syndatax`). Schema migrations are managed via Alembic (`alembic upgrade head`).
+> - **Optional Local Development Fallback:** SQLite (`DATABASE_URL=sqlite:///./syndatax.db` in `backend/.env`) for lightweight, zero-configuration local testing without Docker/PostgreSQL.
 
 ### 2. Configure Environment Variables
 

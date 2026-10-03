@@ -8,7 +8,7 @@ from app.db.session import SessionLocal, engine
 def test_database_config_validity() -> None:
     """Verify that database configuration settings are loaded correctly."""
     assert settings.DATABASE_URL is not None
-    assert "postgresql" in settings.DATABASE_URL
+    assert ("postgresql" in settings.DATABASE_URL) or ("sqlite" in settings.DATABASE_URL)
     assert "syndatax" in settings.DATABASE_URL
 
 

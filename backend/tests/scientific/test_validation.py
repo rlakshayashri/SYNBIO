@@ -76,3 +76,25 @@ def test_custom_dataframe_validation_immutability() -> None:
     assert result.summary.missing_values == 1
     assert result.summary.potential_outliers == 1
     pd.testing.assert_frame_equal(df, df_copy)
+
+
+def test_iqr_outlier_percentage_with_missing_values_regression() -> None:
+    """Regression test for Finding B: Confirm that IQR outlier percentage denominator
+
+    is based on valid observed numeric values (len(series.dropna())) rather than total_rows,
+    ensuring missing values are excluded from the observation denominator.
+    """
+    # 10 rows: 8 valid values (with 1 outlier at 1000.0) and 2 NaNs
+    data = {"values": [10.0, 11.0, 10.5, 12.0, 9.8, 10.2, 10.8, 1000.0, np.nan, np.nan]}
+    df = pd.DataFrame(data)
+
+    result = validate_dataframe(df)
+
+    assert result.summary.potential_outliers == 1
+    assert len(result.checks.outliers) == 1
+
+    outlier_check = result.checks.outliers[0]
+    assert outlier_check.column == "values"
+    assert outlier_check.outlier_count == 1
+    # Valid count = 8. Outlier percentage must be 1 / 8 * 100 = 12.5%, NOT 1 / 10 * 100 = 10.0%
+    assert outlier_check.outlier_percentage == 12.5

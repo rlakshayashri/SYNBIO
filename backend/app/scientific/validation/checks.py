@@ -67,8 +67,8 @@ def check_iqr_outliers(df: pd.DataFrame) -> list[OutlierCheck]:
         outlier_count = int(len(outliers))
 
         if outlier_count > 0:
-            total_rows = len(df)
-            pct = round((outlier_count / total_rows) * 100.0, 2) if total_rows > 0 else 0.0
+            valid_count = len(series.dropna())
+            pct = round((outlier_count / valid_count) * 100.0, 2) if valid_count > 0 else 0.0
             results.append(
                 OutlierCheck(
                     column=str(col),
