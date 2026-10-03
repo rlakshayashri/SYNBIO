@@ -21,6 +21,16 @@ from app.core.logging import logger
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for application startup and shutdown events."""
+    try:
+        import app.models  # noqa: F401
+        from app.db.base import Base
+        from app.db.session import engine
+
+        # Auto-create tables for local SQLite fallback (PostgreSQL uses Alembic migrations)
+        if engine.url.drivername.startswith("sqlite"):
+            Base.metadata.create_all(bind=engine)
+    except Exception as err:
+        logger.warning(f"Auto-create tables skipped/failed: {err}")
     logger.info("SynDataX backend application startup complete.")
     yield
 

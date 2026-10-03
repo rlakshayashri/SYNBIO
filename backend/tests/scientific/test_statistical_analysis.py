@@ -164,3 +164,28 @@ def test_insufficient_sample_size_raises():
 
     with pytest.raises(ScientificValidationError):
         run_two_group_comparison(small_df, value_column="x", group_column="group", method=StatisticalMethod.WELCH_TTEST)
+
+
+def test_wilcoxon_signed_rank_effect_size_regression(sample_dataframe: pd.DataFrame):
+    """Regression test for Finding A: Confirm that paired Wilcoxon Signed-Rank test
+
+    uses the dedicated matched-pairs effect size (Wilcoxon r = |Z| / sqrt(N)) and NOT
+    the independent-sample Mann-Whitney rank-biserial effect size.
+    """
+    result = run_nonparametric_group_comparison(
+        sample_dataframe,
+        value_column="measurement_x",
+        value_column_2="measurement_y",
+        method=StatisticalMethod.WILCOXON_SIGNED_RANK,
+        alpha=0.05,
+        paired=True,
+    )
+
+    assert result.statistic_name == "W"
+    assert result.effect_size is not None
+    assert result.effect_size.name == "Wilcoxon r"
+    assert result.effect_size.name != "Rank-Biserial r"
+    assert result.effect_size.value is not None
+    assert 0.0 <= result.effect_size.value <= 2.0
+    assert "Wilcoxon r =" in result.statement
+    assert "Rank-Biserial r =" not in result.statement
