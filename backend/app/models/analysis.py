@@ -10,6 +10,7 @@ from sqlalchemy.types import JSON, UUID
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.comparison import Comparison
     from app.models.dataset import Dataset
 
 JSONType = JSON().with_variant(JSONB, "postgresql")
@@ -35,3 +36,4 @@ class Analysis(Base):
 
     # Relationships
     dataset: Mapped["Dataset"] = relationship("Dataset", back_populates="analyses")
+    comparison: Mapped["Comparison | None"] = relationship("Comparison", back_populates="analysis", uselist=False)
