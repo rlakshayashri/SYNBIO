@@ -1,6 +1,7 @@
 import { apiRequest } from "./client";
 import { Dataset } from "../types/dataset";
 import { ExperimentResultsResponse } from "../types/results";
+import { ExperimentReport } from "../types/report";
 import {
   Comparison,
   ComparisonCreateRequest,
@@ -151,5 +152,44 @@ export async function downloadExperimentResultsExport(
   a.remove();
   window.URL.revokeObjectURL(downloadUrl);
 }
+
+export async function getExperimentReport(
+  experimentId: string,
+  format: "json" | "markdown" = "json"
+): Promise<ExperimentReport | string> {
+  const url = `/experiments/${experimentId}/report?format=${format}`;
+  if (format === "markdown") {
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+    const res = await fetch(`${BASE_URL}${url}`);
+    if (!res.ok) throw new Error(`Failed to load markdown report: ${res.statusText}`);
+    return res.text();
+  }
+  return apiRequest<ExperimentReport>(url);
+}
+
+export async function downloadExperimentReportExport(
+  experimentId: string,
+  format: "json" | "markdown"
+): Promise<void> {
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  const url = `${BASE_URL}/experiments/${experimentId}/report/export?format=${format}`;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Report export failed with status ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  const ext = format === "markdown" ? "md" : "json";
+  a.download = `experiment_${experimentId}_report.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
 
 

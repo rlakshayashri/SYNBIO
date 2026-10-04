@@ -17,9 +17,11 @@ from app.schemas.experimental_group import (
     ExperimentalGroupResponse,
 )
 from app.schemas.replicate import ReplicateCreate, ReplicateResponse
+from app.schemas.report import ExperimentReport
 from app.schemas.results import ExperimentResultsResponse
 from app.services.comparison_service import ComparisonService
 from app.services.experiment_dataset_service import ExperimentDatasetService
+from app.services.experiment_report_service import ExperimentReportService
 from app.services.experiment_results_service import ExperimentResultsService
 from app.services.experiment_service import ExperimentService
 from app.services.experiment_workspace_service import ExperimentWorkspaceService
@@ -254,4 +256,59 @@ def export_experiment_results(
                 "Content-Disposition": f'attachment; filename="experiment_{experiment_id}_results.json"'
             },
         )
+
+
+@router.get(
+    "/{experiment_id}/report",
+    response_model=None,
+    summary="Get Structured Scientific Report",
+)
+def get_experiment_report(
+    experiment_id: UUID,
+    format: str = Query("json", description="Report format ('json' or 'markdown')"),
+    db: Session = Depends(get_db),
+) -> Response | ExperimentReport:
+    """Generates and returns structured scientific report in JSON object or Markdown text format."""
+    service = ExperimentReportService(db)
+    report = service.generate_report(experiment_id)
+
+    if format.lower() == "markdown":
+        md_content = service.render_markdown(report)
+        return Response(content=md_content, media_type="text/markdown")
+
+    return report
+
+
+@router.get(
+    "/{experiment_id}/report/export",
+    summary="Export Scientific Report Payload File",
+)
+def export_experiment_report(
+    experiment_id: UUID,
+    format: str = Query("json", description="Export format ('json' or 'markdown')"),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Exports scientific report as downloadable JSON or Markdown file."""
+    service = ExperimentReportService(db)
+    report = service.generate_report(experiment_id)
+
+    if format.lower() == "markdown":
+        md_content = service.render_markdown(report)
+        return Response(
+            content=md_content,
+            media_type="text/markdown",
+            headers={
+                "Content-Disposition": f'attachment; filename="experiment_{experiment_id}_report.md"'
+            },
+        )
+    else:
+        json_content = report.model_dump_json(indent=2)
+        return Response(
+            content=json_content,
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f'attachment; filename="experiment_{experiment_id}_report.json"'
+            },
+        )
+
 

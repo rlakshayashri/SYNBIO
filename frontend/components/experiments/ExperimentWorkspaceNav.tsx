@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutDashboard, Users, Database, ShieldCheck, Calculator, LineChart, GitCompare, FileCode } from "lucide-react";
+import { LayoutDashboard, Users, Database, ShieldCheck, Calculator, LineChart, GitCompare, FileCode, FileText } from "lucide-react";
 
 export type WorkspaceTab =
   | "overview"
@@ -9,7 +9,8 @@ export type WorkspaceTab =
   | "statistics"
   | "visualizations"
   | "comparisons"
-  | "results";
+  | "results"
+  | "report";
 
 interface ExperimentWorkspaceNavProps {
   activeTab: WorkspaceTab;
@@ -37,6 +38,7 @@ export const ExperimentWorkspaceNav: React.FC<ExperimentWorkspaceNavProps> = ({
     { id: "visualizations", label: "Visualizations", icon: LineChart },
     { id: "comparisons", label: "Comparisons", icon: GitCompare, count: comparisonsCount },
     { id: "results", label: "Results", icon: FileCode, count: analysesCount },
+    { id: "report", label: "Report", icon: FileText },
   ];
 
   return (

@@ -10,6 +10,7 @@ import { ExperimentStatisticsTab } from "./tabs/ExperimentStatisticsTab";
 import { ExperimentVisualizationsTab } from "./tabs/ExperimentVisualizationsTab";
 import { ExperimentComparisonsTab } from "./tabs/ExperimentComparisonsTab";
 import { ExperimentResultsTab } from "./tabs/ExperimentResultsTab";
+import { ExperimentReportTab } from "./tabs/ExperimentReportTab";
 
 interface ExperimentWorkspaceProps {
   workspace: ExperimentWorkspaceResponse;
@@ -70,6 +71,9 @@ export const ExperimentWorkspace: React.FC<ExperimentWorkspaceProps> = ({
         )}
         {activeTab === "results" && (
           <ExperimentResultsTab workspace={workspace} />
+        )}
+        {activeTab === "report" && (
+          <ExperimentReportTab workspace={workspace} />
         )}
       </div>
     </div>
