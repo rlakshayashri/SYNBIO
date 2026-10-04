@@ -26,6 +26,12 @@ class Dataset(Base):
         nullable=False,
         index=True,
     )
+    experiment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("experiments.id", ondelete="SET NULL", use_alter=True, name="fk_datasets_experiment_id"),
+        nullable=True,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     file_type: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -40,7 +46,10 @@ class Dataset(Base):
 
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="datasets")
+    experiment: Mapped["Experiment | None"] = relationship(
+        "Experiment", back_populates="datasets", foreign_keys=[experiment_id]
+    )
     analyses: Mapped[list["Analysis"]] = relationship(
         "Analysis", back_populates="dataset", cascade="all, delete-orphan"
     )
-    experiments: Mapped[list["Experiment"]] = relationship("Experiment", back_populates="dataset")
+

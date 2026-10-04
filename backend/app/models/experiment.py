@@ -9,6 +9,7 @@ from sqlalchemy.types import UUID
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.analysis import Analysis
     from app.models.comparison import Comparison
     from app.models.dataset import Dataset
     from app.models.experimental_group import ExperimentalGroup
@@ -35,6 +36,8 @@ class Experiment(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, server_default="draft", default="draft")
+    objective: Mapped[str | None] = mapped_column(Text, nullable=True)
     organism: Mapped[str | None] = mapped_column(String(100), nullable=True)
     condition_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -45,10 +48,15 @@ class Experiment(Base):
 
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="experiments")
-    dataset: Mapped["Dataset | None"] = relationship("Dataset", back_populates="experiments")
+    dataset: Mapped["Dataset | None"] = relationship("Dataset", foreign_keys=[dataset_id])
+    datasets: Mapped[list["Dataset"]] = relationship(
+        "Dataset", back_populates="experiment", foreign_keys="[Dataset.experiment_id]"
+    )
     groups: Mapped[list["ExperimentalGroup"]] = relationship(
         "ExperimentalGroup", back_populates="experiment", cascade="all, delete-orphan"
     )
     comparisons: Mapped[list["Comparison"]] = relationship(
         "Comparison", back_populates="experiment", cascade="all, delete-orphan"
     )
+    analyses: Mapped[list["Analysis"]] = relationship("Analysis", back_populates="experiment")
+

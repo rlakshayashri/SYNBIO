@@ -69,6 +69,8 @@ class ExperimentService:
             dataset_id=schema.dataset_id,
             name=schema.name,
             description=schema.description,
+            status=schema.status,
+            objective=schema.objective,
             organism=schema.organism,
             condition_type=schema.condition_type,
             notes=schema.notes,

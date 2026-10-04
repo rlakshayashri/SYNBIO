@@ -12,6 +12,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.comparison import Comparison
     from app.models.dataset import Dataset
+    from app.models.experiment import Experiment
 
 JSONType = JSON().with_variant(JSONB, "postgresql")
 
@@ -28,6 +29,12 @@ class Analysis(Base):
         nullable=False,
         index=True,
     )
+    experiment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("experiments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     analysis_type: Mapped[str] = mapped_column(String(100), nullable=False)
     parameters: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
     result: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
@@ -36,4 +43,6 @@ class Analysis(Base):
 
     # Relationships
     dataset: Mapped["Dataset"] = relationship("Dataset", back_populates="analyses")
+    experiment: Mapped["Experiment | None"] = relationship("Experiment", back_populates="analyses")
     comparison: Mapped["Comparison | None"] = relationship("Comparison", back_populates="analysis", uselist=False)
+

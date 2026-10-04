@@ -21,6 +21,7 @@ class DatasetCreate(DatasetBase):
     """Schema for creating a Dataset record."""
 
     project_id: UUID
+    experiment_id: UUID | None = Field(None, description="Optional associated experiment ID")
 
 
 class DatasetUpdate(BaseModel):
@@ -29,6 +30,7 @@ class DatasetUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     row_count: int | None = Field(None, ge=0)
     column_count: int | None = Field(None, ge=0)
+    experiment_id: UUID | None = Field(None, description="Optional associated experiment ID")
 
 
 class DatasetResponse(DatasetBase):
@@ -36,10 +38,12 @@ class DatasetResponse(DatasetBase):
 
     id: UUID
     project_id: UUID
+    experiment_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 
 class ColumnMetadata(BaseModel):

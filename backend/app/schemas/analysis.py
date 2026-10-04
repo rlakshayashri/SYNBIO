@@ -18,6 +18,7 @@ class AnalysisCreate(AnalysisBase):
     """Schema for registering an Analysis run."""
 
     dataset_id: UUID
+    experiment_id: UUID | None = Field(None, description="Optional associated experiment ID")
 
 
 class AnalysisUpdate(BaseModel):
@@ -32,6 +33,8 @@ class AnalysisResponse(AnalysisBase):
 
     id: UUID
     dataset_id: UUID
+    experiment_id: UUID | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
