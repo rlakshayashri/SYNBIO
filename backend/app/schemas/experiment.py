@@ -3,7 +3,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.analysis import AnalysisResponse
 from app.schemas.comparison import ComparisonResponse
+from app.schemas.dataset import DatasetResponse
 from app.schemas.experimental_group import (
     ExperimentalGroupCreate,
     ExperimentalGroupResponse,
@@ -47,7 +49,6 @@ class ExperimentUpdate(BaseModel):
     dataset_id: uuid.UUID | None = Field(default=None)
 
 
-
 class ExperimentResponse(ExperimentBase):
     """Schema for Experiment response."""
 
@@ -60,3 +61,16 @@ class ExperimentResponse(ExperimentBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ExperimentWorkspaceResponse(BaseModel):
+    """Lightweight aggregated schema for Experiment Workspace view."""
+
+    experiment: ExperimentResponse
+    attached_datasets: list[DatasetResponse] = Field(default_factory=list)
+    groups: list[ExperimentalGroupResponse] = Field(default_factory=list)
+    comparisons: list[ComparisonResponse] = Field(default_factory=list)
+    analyses: list[AnalysisResponse] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+

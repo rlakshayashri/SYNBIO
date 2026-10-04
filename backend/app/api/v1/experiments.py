@@ -1,14 +1,16 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.schemas.comparison import ComparisonCreateRequest, ComparisonResponse
+from app.schemas.dataset import DatasetResponse
 from app.schemas.experiment import (
     ExperimentCreate,
     ExperimentResponse,
     ExperimentUpdate,
+    ExperimentWorkspaceResponse,
 )
 from app.schemas.experimental_group import (
     ExperimentalGroupCreate,
@@ -16,7 +18,9 @@ from app.schemas.experimental_group import (
 )
 from app.schemas.replicate import ReplicateCreate, ReplicateResponse
 from app.services.comparison_service import ComparisonService
+from app.services.experiment_dataset_service import ExperimentDatasetService
 from app.services.experiment_service import ExperimentService
+from app.services.experiment_workspace_service import ExperimentWorkspaceService
 from app.services.group_service import GroupService
 from app.services.replicate_service import ReplicateService
 
@@ -118,3 +122,85 @@ def run_comparison(
     """Executes group comparison and stores Analysis & Comparison records."""
     service = ComparisonService(db)
     return service.run_comparison(experiment_id, request)
+
+
+@router.post(
+    "/{experiment_id}/datasets/{dataset_id}/attach",
+    response_model=DatasetResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Attach Dataset to Experiment",
+)
+def attach_dataset(
+    experiment_id: UUID, dataset_id: UUID, db: Session = Depends(get_db)
+) -> DatasetResponse:
+    """Attaches an existing dataset to an experiment."""
+    service = ExperimentDatasetService(db)
+    return service.attach_dataset(experiment_id, dataset_id)
+
+
+@router.delete(
+    "/{experiment_id}/datasets/{dataset_id}/detach",
+    response_model=DatasetResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Detach Dataset from Experiment",
+)
+def detach_dataset(
+    experiment_id: UUID, dataset_id: UUID, db: Session = Depends(get_db)
+) -> DatasetResponse:
+    """Detaches a dataset from an experiment."""
+    service = ExperimentDatasetService(db)
+    return service.detach_dataset(experiment_id, dataset_id)
+
+
+@router.get(
+    "/{experiment_id}/datasets",
+    response_model=list[DatasetResponse],
+    summary="List Attached Datasets",
+)
+def list_attached_datasets(
+    experiment_id: UUID, db: Session = Depends(get_db)
+) -> list[DatasetResponse]:
+    """Lists all datasets attached to an experiment."""
+    service = ExperimentDatasetService(db)
+    return list(service.list_attached_datasets(experiment_id))
+
+
+@router.post(
+    "/{experiment_id}/datasets/upload",
+    response_model=DatasetResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload and Attach Dataset",
+)
+def upload_and_attach_dataset(
+    experiment_id: UUID,
+    name: str | None = Form(None, description="Optional custom display name"),
+    file: UploadFile = File(..., description="CSV or Excel file"),
+    db: Session = Depends(get_db),
+) -> DatasetResponse:
+    """Uploads a dataset file and attaches it to the specified experiment."""
+    file_bytes = file.file.read()
+    file_name = file.filename or "uploaded_file"
+    file_type = file.content_type or file_name.split(".")[-1]
+
+    service = ExperimentDatasetService(db)
+    return service.upload_and_attach(
+        experiment_id=experiment_id,
+        file_name=file_name,
+        file_type=file_type,
+        file_bytes=file_bytes,
+        name=name,
+    )
+
+
+@router.get(
+    "/{experiment_id}/workspace",
+    response_model=ExperimentWorkspaceResponse,
+    summary="Get Experiment Workspace",
+)
+def get_experiment_workspace(
+    experiment_id: UUID, db: Session = Depends(get_db)
+) -> ExperimentWorkspaceResponse:
+    """Retrieves lightweight metadata summaries for the Experiment Workspace view."""
+    service = ExperimentWorkspaceService(db)
+    return service.get_workspace(experiment_id)
+
