@@ -8,6 +8,7 @@ import { ExperimentDatasetsTab } from "./tabs/ExperimentDatasetsTab";
 import { ExperimentValidationTab } from "./tabs/ExperimentValidationTab";
 import { ExperimentStatisticsTab } from "./tabs/ExperimentStatisticsTab";
 import { ExperimentVisualizationsTab } from "./tabs/ExperimentVisualizationsTab";
+import { ExperimentComparisonsTab } from "./tabs/ExperimentComparisonsTab";
 import { WorkspacePlaceholderTab } from "./WorkspacePlaceholderTab";
 
 interface ExperimentWorkspaceProps {
@@ -62,9 +63,9 @@ export const ExperimentWorkspace: React.FC<ExperimentWorkspaceProps> = ({
           <ExperimentVisualizationsTab workspace={workspace} />
         )}
         {activeTab === "comparisons" && (
-          <WorkspacePlaceholderTab
-            title="Group Comparisons"
-            description="Execute parametric and non-parametric hypothesis tests (Welch t-test, ANOVA, Mann-Whitney U, Kruskal-Wallis)."
+          <ExperimentComparisonsTab
+            workspace={workspace}
+            onRefreshWorkspace={onRefreshWorkspace}
           />
         )}
         {activeTab === "results" && (
