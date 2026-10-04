@@ -5,6 +5,8 @@ import { ExperimentWorkspaceNav, WorkspaceTab } from "./ExperimentWorkspaceNav";
 import { ExperimentOverviewTab } from "./ExperimentOverviewTab";
 import { ExperimentGroupsTab } from "./tabs/ExperimentGroupsTab";
 import { ExperimentDatasetsTab } from "./tabs/ExperimentDatasetsTab";
+import { ExperimentValidationTab } from "./tabs/ExperimentValidationTab";
+import { ExperimentStatisticsTab } from "./tabs/ExperimentStatisticsTab";
 import { WorkspacePlaceholderTab } from "./WorkspacePlaceholderTab";
 
 interface ExperimentWorkspaceProps {
@@ -50,16 +52,10 @@ export const ExperimentWorkspace: React.FC<ExperimentWorkspaceProps> = ({
           />
         )}
         {activeTab === "validation" && (
-          <WorkspacePlaceholderTab
-            title="Data Validation & Quality Checks"
-            description="Inspect data missingness, detected data types, empty columns, and IQR outliers."
-          />
+          <ExperimentValidationTab workspace={workspace} />
         )}
         {activeTab === "statistics" && (
-          <WorkspacePlaceholderTab
-            title="Descriptive Statistics"
-            description="Review column-level summary metrics (mean, median, std error, min/max, IQR, CV)."
-          />
+          <ExperimentStatisticsTab workspace={workspace} />
         )}
         {activeTab === "visualizations" && (
           <WorkspacePlaceholderTab
