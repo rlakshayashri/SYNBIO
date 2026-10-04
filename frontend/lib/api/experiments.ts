@@ -1,4 +1,5 @@
 import { apiRequest } from "./client";
+import { Dataset } from "../types/dataset";
 import {
   Comparison,
   ComparisonCreateRequest,
@@ -74,4 +75,44 @@ export async function runExperimentalComparison(
     body: JSON.stringify(request),
   });
 }
+
+export async function attachDataset(
+  experimentId: string,
+  datasetId: string
+): Promise<Dataset> {
+  return apiRequest<Dataset>(`/experiments/${experimentId}/datasets/${datasetId}/attach`, {
+    method: "POST",
+  });
+}
+
+export async function detachDataset(
+  experimentId: string,
+  datasetId: string
+): Promise<Dataset> {
+  return apiRequest<Dataset>(`/experiments/${experimentId}/datasets/${datasetId}/detach`, {
+    method: "DELETE",
+  });
+}
+
+export async function getAttachedDatasets(experimentId: string): Promise<Dataset[]> {
+  return apiRequest<Dataset[]>(`/experiments/${experimentId}/datasets`);
+}
+
+export async function uploadAndAttachDataset(
+  experimentId: string,
+  file: File,
+  name?: string
+): Promise<Dataset> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (name) {
+    formData.append("name", name);
+  }
+
+  return apiRequest<Dataset>(`/experiments/${experimentId}/datasets/upload`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
 

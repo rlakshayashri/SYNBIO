@@ -3,13 +3,19 @@ import { ExperimentWorkspaceResponse } from "../../lib/types/experiment";
 import { ExperimentHeader } from "./ExperimentHeader";
 import { ExperimentWorkspaceNav, WorkspaceTab } from "./ExperimentWorkspaceNav";
 import { ExperimentOverviewTab } from "./ExperimentOverviewTab";
+import { ExperimentGroupsTab } from "./tabs/ExperimentGroupsTab";
+import { ExperimentDatasetsTab } from "./tabs/ExperimentDatasetsTab";
 import { WorkspacePlaceholderTab } from "./WorkspacePlaceholderTab";
 
 interface ExperimentWorkspaceProps {
   workspace: ExperimentWorkspaceResponse;
+  onRefreshWorkspace?: () => void;
 }
 
-export const ExperimentWorkspace: React.FC<ExperimentWorkspaceProps> = ({ workspace }) => {
+export const ExperimentWorkspace: React.FC<ExperimentWorkspaceProps> = ({
+  workspace,
+  onRefreshWorkspace = () => {},
+}) => {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const { experiment, attached_datasets, groups, comparisons, analyses } = workspace;
 
@@ -32,15 +38,15 @@ export const ExperimentWorkspace: React.FC<ExperimentWorkspaceProps> = ({ worksp
       <div>
         {activeTab === "overview" && <ExperimentOverviewTab workspace={workspace} />}
         {activeTab === "groups" && (
-          <WorkspacePlaceholderTab
-            title="Experimental Groups & Replicates"
-            description="Manage experimental groups, study arms, and biological/technical replicate sample metadata."
+          <ExperimentGroupsTab
+            workspace={workspace}
+            onRefreshWorkspace={onRefreshWorkspace}
           />
         )}
         {activeTab === "datasets" && (
-          <WorkspacePlaceholderTab
-            title="Experiment Datasets"
-            description="Attach, detach, and upload raw tabular datasets directly associated with this experiment."
+          <ExperimentDatasetsTab
+            workspace={workspace}
+            onRefreshWorkspace={onRefreshWorkspace}
           />
         )}
         {activeTab === "validation" && (

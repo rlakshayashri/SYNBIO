@@ -95,5 +95,5 @@ export default function ExperimentDetailPage() {
     );
   }
 
-  return <ExperimentWorkspace workspace={workspace} />;
+  return <ExperimentWorkspace workspace={workspace} onRefreshWorkspace={loadWorkspace} />;
 }
