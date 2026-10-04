@@ -100,6 +100,7 @@ class ComparisonService:
         # Persist Analysis ORM record
         analysis_record = Analysis(
             dataset_id=dataset.id,
+            experiment_id=experiment_id,
             analysis_type=f"experimental_comparison_{request.comparison_type}_{request.method.value}",
             parameters=request.model_dump(mode="json"),
             result={

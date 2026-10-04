@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -17,8 +17,10 @@ from app.schemas.experimental_group import (
     ExperimentalGroupResponse,
 )
 from app.schemas.replicate import ReplicateCreate, ReplicateResponse
+from app.schemas.results import ExperimentResultsResponse
 from app.services.comparison_service import ComparisonService
 from app.services.experiment_dataset_service import ExperimentDatasetService
+from app.services.experiment_results_service import ExperimentResultsService
 from app.services.experiment_service import ExperimentService
 from app.services.experiment_workspace_service import ExperimentWorkspaceService
 from app.services.group_service import GroupService
@@ -203,4 +205,53 @@ def get_experiment_workspace(
     """Retrieves lightweight metadata summaries for the Experiment Workspace view."""
     service = ExperimentWorkspaceService(db)
     return service.get_workspace(experiment_id)
+
+
+@router.get(
+    "/{experiment_id}/results",
+    response_model=ExperimentResultsResponse,
+    summary="Get Experiment Results & Provenance",
+)
+def get_experiment_results(
+    experiment_id: UUID,
+    analysis_type: str | None = Query(None, description="Optional analysis type filter"),
+    dataset_id: UUID | None = Query(None, description="Optional dataset ID filter"),
+    db: Session = Depends(get_db),
+) -> ExperimentResultsResponse:
+    """Retrieves all historical analysis results and full provenance for an experiment."""
+    service = ExperimentResultsService(db)
+    return service.get_results(experiment_id, analysis_type=analysis_type, dataset_id=dataset_id)
+
+
+@router.get(
+    "/{experiment_id}/results/export",
+    summary="Export Experiment Results & Provenance Payload",
+)
+def export_experiment_results(
+    experiment_id: UUID,
+    format: str = Query("json", description="Export format ('json' or 'csv')"),
+    db: Session = Depends(get_db),
+) -> Response:
+    """Exports structured experiment results and provenance in JSON or CSV format."""
+    service = ExperimentResultsService(db)
+
+    if format.lower() == "csv":
+        csv_content = service.export_csv(experiment_id)
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="experiment_{experiment_id}_results.csv"'
+            },
+        )
+    else:
+        results_data = service.get_results(experiment_id)
+        json_content = results_data.model_dump_json(indent=2)
+        return Response(
+            content=json_content,
+            media_type="application/json",
+            headers={
+                "Content-Disposition": f'attachment; filename="experiment_{experiment_id}_results.json"'
+            },
+        )
 

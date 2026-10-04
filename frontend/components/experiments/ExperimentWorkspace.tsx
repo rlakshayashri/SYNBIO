@@ -9,7 +9,7 @@ import { ExperimentValidationTab } from "./tabs/ExperimentValidationTab";
 import { ExperimentStatisticsTab } from "./tabs/ExperimentStatisticsTab";
 import { ExperimentVisualizationsTab } from "./tabs/ExperimentVisualizationsTab";
 import { ExperimentComparisonsTab } from "./tabs/ExperimentComparisonsTab";
-import { WorkspacePlaceholderTab } from "./WorkspacePlaceholderTab";
+import { ExperimentResultsTab } from "./tabs/ExperimentResultsTab";
 
 interface ExperimentWorkspaceProps {
   workspace: ExperimentWorkspaceResponse;
@@ -69,10 +69,7 @@ export const ExperimentWorkspace: React.FC<ExperimentWorkspaceProps> = ({
           />
         )}
         {activeTab === "results" && (
-          <WorkspacePlaceholderTab
-            title="Unified Scientific Results Timeline"
-            description="Chronological history of all validation, statistical, and group comparison outputs with full scientific provenance."
-          />
+          <ExperimentResultsTab workspace={workspace} />
         )}
       </div>
     </div>

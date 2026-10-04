@@ -1,5 +1,6 @@
 import { apiRequest } from "./client";
 import { Dataset } from "../types/dataset";
+import { ExperimentResultsResponse } from "../types/results";
 import {
   Comparison,
   ComparisonCreateRequest,
@@ -113,6 +114,42 @@ export async function uploadAndAttachDataset(
     method: "POST",
     body: formData,
   });
+}
+
+export async function getExperimentResults(
+  experimentId: string,
+  analysisType?: string,
+  datasetId?: string
+): Promise<ExperimentResultsResponse> {
+  const params = new URLSearchParams();
+  if (analysisType) params.append("analysis_type", analysisType);
+  if (datasetId) params.append("dataset_id", datasetId);
+
+  const query = params.toString() ? `?${params.toString()}` : "";
+  return apiRequest<ExperimentResultsResponse>(`/experiments/${experimentId}/results${query}`);
+}
+
+export async function downloadExperimentResultsExport(
+  experimentId: string,
+  format: "json" | "csv"
+): Promise<void> {
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  const url = `${BASE_URL}/experiments/${experimentId}/results/export?format=${format}`;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Export failed with status ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = `experiment_${experimentId}_results.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
 }
 
 
