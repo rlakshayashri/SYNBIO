@@ -1,3 +1,4 @@
+import { Dataset } from "./dataset";
 import { StatisticalAnalysisResult } from "./statistical_analysis";
 import { DescriptiveStatisticsResult } from "./statistics";
 
@@ -85,12 +86,25 @@ export interface ComparisonCreateRequest {
   paired?: boolean;
 }
 
+export interface AnalysisRecord {
+  id: string;
+  dataset_id: string;
+  experiment_id?: string | null;
+  analysis_type: string;
+  parameters: Record<string, any>;
+  result: Record<string, any>;
+  software_version: string;
+  created_at: string;
+}
+
 export interface Experiment {
   id: string;
   project_id: string;
   dataset_id?: string | null;
   name: string;
   description?: string | null;
+  status?: string;
+  objective?: string | null;
   organism?: string | null;
   condition_type?: string | null;
   notes?: string | null;
@@ -105,6 +119,8 @@ export interface ExperimentCreate {
   dataset_id?: string | null;
   name: string;
   description?: string | null;
+  status?: string;
+  objective?: string | null;
   organism?: string | null;
   condition_type?: string | null;
   notes?: string | null;
@@ -114,8 +130,19 @@ export interface ExperimentCreate {
 export interface ExperimentUpdate {
   name?: string;
   description?: string;
+  status?: string;
+  objective?: string | null;
   organism?: string;
   condition_type?: string;
   notes?: string;
   dataset_id?: string | null;
 }
+
+export interface ExperimentWorkspaceResponse {
+  experiment: Experiment;
+  attached_datasets: Dataset[];
+  groups: ExperimentalGroup[];
+  comparisons: Comparison[];
+  analyses: AnalysisRecord[];
+}
+

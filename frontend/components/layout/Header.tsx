@@ -26,6 +26,13 @@ export const Header: React.FC = () => {
             <Layers className="w-4 h-4 text-cyan-400" />
             <span>Projects</span>
           </Link>
+          <Link
+            href="/experiments"
+            className="flex items-center space-x-2 text-slate-300 hover:text-white transition-colors"
+          >
+            <FlaskConical className="w-4 h-4 text-emerald-400" />
+            <span>Experiments</span>
+          </Link>
           <div className="h-4 w-px bg-slate-800" />
           <div className="flex items-center space-x-2 text-slate-400 text-xs">
             <Database className="w-3.5 h-3.5 text-emerald-400" />

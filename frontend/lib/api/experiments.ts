@@ -5,6 +5,7 @@ import {
   Experiment,
   ExperimentCreate,
   ExperimentUpdate,
+  ExperimentWorkspaceResponse,
   ExperimentalGroup,
   ExperimentalGroupCreate,
   Replicate,
@@ -25,6 +26,10 @@ export async function getExperiments(projectId?: string): Promise<Experiment[]> 
 
 export async function getExperiment(id: string): Promise<Experiment> {
   return apiRequest<Experiment>(`/experiments/${id}`);
+}
+
+export async function getExperimentWorkspace(id: string): Promise<ExperimentWorkspaceResponse> {
+  return apiRequest<ExperimentWorkspaceResponse>(`/experiments/${id}/workspace`);
 }
 
 export async function updateExperiment(id: string, data: ExperimentUpdate): Promise<Experiment> {
@@ -69,3 +74,4 @@ export async function runExperimentalComparison(
     body: JSON.stringify(request),
   });
 }
+
