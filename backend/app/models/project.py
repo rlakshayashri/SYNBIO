@@ -10,6 +10,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.dataset import Dataset
+    from app.models.experiment import Experiment
 
 
 class Project(Base):
@@ -27,3 +28,6 @@ class Project(Base):
 
     # Relationships
     datasets: Mapped[list["Dataset"]] = relationship("Dataset", back_populates="project", cascade="all, delete-orphan")
+    experiments: Mapped[list["Experiment"]] = relationship(
+        "Experiment", back_populates="project", cascade="all, delete-orphan"
+    )

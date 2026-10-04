@@ -1,6 +1,11 @@
 """Pydantic schemas package for request validation and response serialization."""
 
 from app.schemas.analysis import AnalysisCreate, AnalysisResponse, AnalysisUpdate
+from app.schemas.comparison import (
+    ComparisonCreateRequest,
+    ComparisonResponse,
+    GroupDataSummary,
+)
 from app.schemas.dataset import (
     ColumnMetadata,
     DatasetCreate,
@@ -8,7 +13,25 @@ from app.schemas.dataset import (
     DatasetResponse,
     DatasetUpdate,
 )
+from app.schemas.experiment import (
+    ExperimentBase,
+    ExperimentCreate,
+    ExperimentResponse,
+    ExperimentUpdate,
+)
+from app.schemas.experimental_group import (
+    ExperimentalGroupBase,
+    ExperimentalGroupCreate,
+    ExperimentalGroupResponse,
+    ExperimentalGroupUpdate,
+)
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from app.schemas.replicate import (
+    ReplicateBase,
+    ReplicateCreate,
+    ReplicateResponse,
+    ReplicateUpdate,
+)
 from app.schemas.statistical_analysis import (
     StatisticalAnalysisRequestSchema,
     StatisticalAnalysisResponseSchema,
@@ -48,4 +71,19 @@ __all__ = [
     "VisualizationResult",
     "StatisticalAnalysisRequestSchema",
     "StatisticalAnalysisResponseSchema",
+    "ExperimentBase",
+    "ExperimentCreate",
+    "ExperimentUpdate",
+    "ExperimentResponse",
+    "ExperimentalGroupBase",
+    "ExperimentalGroupCreate",
+    "ExperimentalGroupUpdate",
+    "ExperimentalGroupResponse",
+    "ReplicateBase",
+    "ReplicateCreate",
+    "ReplicateUpdate",
+    "ReplicateResponse",
+    "ComparisonCreateRequest",
+    "ComparisonResponse",
+    "GroupDataSummary",
 ]

@@ -40,3 +40,9 @@ class ScientificValidationError(SynDataXError):
     """Raised when scientific parameters or calculations fail validation."""
 
     pass
+
+
+class ExperimentNotFoundError(SynDataXError):
+    """Raised when a requested Experiment is not found."""
+
+    pass

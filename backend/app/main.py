@@ -11,6 +11,7 @@ from app.core.exceptions import (
     DatasetNotFoundError,
     DatasetParseError,
     DatasetTooLargeError,
+    ExperimentNotFoundError,
     ProjectNotFoundError,
     SynDataXError,
     UnsupportedFileTypeError,
@@ -68,6 +69,14 @@ def dataset_not_found_handler(request: Request, exc: DatasetNotFoundError) -> JS
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content={"error": "DatasetNotFoundError", "detail": exc.message},
+    )
+
+
+@app.exception_handler(ExperimentNotFoundError)
+def experiment_not_found_handler(request: Request, exc: ExperimentNotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": "ExperimentNotFoundError", "detail": exc.message},
     )
 
 

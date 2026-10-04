@@ -3,13 +3,15 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Play, RefreshCw, AlertCircle, ShieldCheck, Calculator } from "lucide-react";
+import { ArrowLeft, Play, RefreshCw, AlertCircle, ShieldCheck, Calculator, FlaskConical, Plus } from "lucide-react";
 import { Dataset, DatasetPreviewResponse } from "../../../lib/types/dataset";
 import { ValidationResult } from "../../../lib/types/validation";
 import { DescriptiveStatisticsResult } from "../../../lib/types/statistics";
+import { Experiment, ExperimentCreate } from "../../../lib/types/experiment";
 import { getDataset, getDatasetPreview } from "../../../lib/api/datasets";
 import { validateDataset } from "../../../lib/api/validation";
 import { calculateDescriptiveStatistics } from "../../../lib/api/statistics";
+import { createExperiment, getExperiments } from "../../../lib/api/experiments";
 import { DatasetMetadataCard } from "../../../components/datasets/DatasetMetadataCard";
 import { DataPreviewTable } from "../../../components/datasets/DataPreviewTable";
 import { ValidationSummaryCard } from "../../../components/validation/ValidationSummaryCard";
@@ -17,6 +19,9 @@ import { ValidationDetailsTabs } from "../../../components/validation/Validation
 import { DescriptiveStatisticsCard } from "../../../components/statistics/DescriptiveStatisticsCard";
 import { VisualizationPanel } from "../../../components/visualization/VisualizationPanel";
 import { StatisticalAnalysisPanel } from "../../../components/statistics/StatisticalAnalysisPanel";
+import { ExperimentalComparisonPanel } from "../../../components/experiments/ExperimentalComparisonPanel";
+import { CreateExperimentModal } from "../../../components/experiments/CreateExperimentModal";
+import { ExperimentCard } from "../../../components/experiments/ExperimentCard";
 import { Button } from "../../../components/ui/Button";
 
 export default function DatasetDetailPage() {
@@ -27,18 +32,21 @@ export default function DatasetDetailPage() {
   const [preview, setPreview] = useState<DatasetPreviewResponse | null>(null);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [statistics, setStatistics] = useState<DescriptiveStatisticsResult | null>(null);
+  const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
 
   const [loadingDataset, setLoadingDataset] = useState(true);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [validating, setValidating] = useState(false);
   const [calculatingStats, setCalculatingStats] = useState(false);
+  const [isCreateExpModalOpen, setIsCreateExpModalOpen] = useState(false);
 
   const [errorDataset, setErrorDataset] = useState<string | null>(null);
   const [errorPreview, setErrorPreview] = useState<string | null>(null);
   const [errorValidation, setErrorValidation] = useState<string | null>(null);
   const [errorStatistics, setErrorStatistics] = useState<string | null>(null);
 
-  // Load Dataset Metadata & Preview
+  // Load Dataset Metadata & Preview & Experiments
   const loadDatasetData = async () => {
     if (!datasetId) return;
 
@@ -50,6 +58,16 @@ export default function DatasetDetailPage() {
     try {
       const data = await getDataset(datasetId);
       setDataset(data);
+
+      if (data.project_id) {
+        try {
+          const expList = await getExperiments(data.project_id);
+          setExperiments(expList);
+          if (expList.length > 0) setSelectedExperiment(expList[0]);
+        } catch {
+          // Ignore experiment load errors silently
+        }
+      }
     } catch (err: any) {
       setErrorDataset(err.detail || "Unable to load dataset metadata.");
     } finally {
@@ -104,6 +122,12 @@ export default function DatasetDetailPage() {
     }
   };
 
+  const handleCreateExperiment = async (data: ExperimentCreate) => {
+    const newExp = await createExperiment(data);
+    setExperiments([newExp, ...experiments]);
+    setSelectedExperiment(newExp);
+  };
+
   if (loadingDataset) {
     return (
       <div className="space-y-6">
@@ -142,8 +166,17 @@ export default function DatasetDetailPage() {
           Back to Projects
         </Link>
 
-        {/* Action Buttons: Run Validation & Calculate Statistics */}
+        {/* Action Buttons */}
         <div className="flex items-center space-x-3">
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => setIsCreateExpModalOpen(true)}
+          >
+            <FlaskConical className="w-4 h-4 mr-2 text-cyan-400" />
+            New Experiment Context
+          </Button>
+
           <Button
             variant="outline"
             size="md"
@@ -168,6 +201,55 @@ export default function DatasetDetailPage() {
 
       {/* Dataset Metadata Card */}
       <DatasetMetadataCard dataset={dataset} />
+
+      {/* Module 6 — Experimental Context & Comparison Section */}
+      {preview && preview.columns && preview.columns.length > 0 && (
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+              <FlaskConical className="w-4 h-4 text-cyan-400" />
+              <span>Module 6 — Experiments & Group Comparisons</span>
+            </h3>
+            <Button variant="outline" size="sm" onClick={() => setIsCreateExpModalOpen(true)}>
+              <Plus className="w-3.5 h-3.5 mr-1" /> Create Experiment
+            </Button>
+          </div>
+
+          {experiments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {experiments.map((exp) => (
+                <ExperimentCard
+                  key={exp.id}
+                  experiment={exp}
+                  isSelected={selectedExperiment?.id === exp.id}
+                  onSelect={(e) => setSelectedExperiment(e)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 bg-slate-900/60 border border-slate-800 border-dashed rounded-xl text-center">
+              <p className="text-xs text-slate-400 mb-2">No experiments linked to this project yet.</p>
+              <Button variant="outline" size="sm" onClick={() => setIsCreateExpModalOpen(true)}>
+                <Plus className="w-3.5 h-3.5 mr-1" /> Create First Experiment
+              </Button>
+            </div>
+          )}
+
+          {selectedExperiment && (
+            <ExperimentalComparisonPanel
+              experiment={selectedExperiment}
+              columns={preview.columns}
+              onComparisonExecuted={(comp) => {
+                // Refresh experiment comparisons locally
+                setSelectedExperiment({
+                  ...selectedExperiment,
+                  comparisons: [comp, ...(selectedExperiment.comparisons || [])],
+                });
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {/* Action Error Alerts */}
       {errorValidation && (
@@ -235,6 +317,17 @@ export default function DatasetDetailPage() {
         isLoading={loadingPreview}
         error={errorPreview}
       />
+
+      {/* Create Experiment Modal */}
+      {dataset && (
+        <CreateExperimentModal
+          isOpen={isCreateExpModalOpen}
+          onClose={() => setIsCreateExpModalOpen(false)}
+          onSubmit={handleCreateExperiment}
+          projectId={dataset.project_id}
+          datasetId={dataset.id}
+        />
+      )}
     </div>
   );
 }
