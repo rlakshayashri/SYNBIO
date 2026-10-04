@@ -74,6 +74,7 @@ class VisualizationService:
         # Persist Analysis record in PostgreSQL
         analysis = Analysis(
             dataset_id=dataset_id,
+            experiment_id=dataset.experiment_id,
             analysis_type=f"visualization_{request.plot_type.value}",
             parameters=request.model_dump(mode="json"),
             result=result.model_dump(mode="json"),
