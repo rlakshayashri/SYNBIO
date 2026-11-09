@@ -17,6 +17,7 @@ import {
   History,
   Layers,
   FileSpreadsheet,
+  Split,
 } from "lucide-react";
 import { ExperimentReport } from "../../../lib/types/report";
 import { ExperimentWorkspaceResponse } from "../../../lib/types/experiment";
@@ -27,6 +28,12 @@ import {
 import { Card } from "../../ui/Card";
 import { Button } from "../../ui/Button";
 import { Badge } from "../../ui/Badge";
+
+function formatPValue(p: number | null | undefined): string {
+  if (p === null || p === undefined || isNaN(p)) return "-";
+  if (p < 0.0001) return "< 0.0001";
+  return p.toFixed(4);
+}
 
 interface ExperimentReportTabProps {
   workspace: ExperimentWorkspaceResponse;
@@ -102,7 +109,7 @@ export const ExperimentReportTab: React.FC<ExperimentReportTabProps> = ({ worksp
     );
   }
 
-  const { metadata, experimental_context, datasets, data_quality, descriptive_statistics, visualizations, comparisons, statistical_results, provenance, disclaimer } = report;
+  const { metadata, experimental_context, datasets, data_quality, descriptive_statistics, visualizations, comparisons, statistical_results, factorial_analyses = [], provenance, disclaimer } = report;
 
   return (
     <div className="space-y-6">
@@ -470,7 +477,7 @@ export const ExperimentReportTab: React.FC<ExperimentReportTabProps> = ({ worksp
                         <td className="py-2 px-3 font-sans font-bold text-slate-200">{sr.test_name || sr.analysis_type}</td>
                         <td className="py-2 px-3 font-sans text-slate-400">{sr.dataset_name}</td>
                         <td className="py-2 px-3">{sr.statistic_value !== null ? `${sr.statistic_name || 'stat'}: ${sr.statistic_value.toFixed(4)}` : "-"}</td>
-                        <td className="py-2 px-3 text-cyan-300">{sr.p_value !== null ? sr.p_value.toExponential(4) : "-"}</td>
+                        <td className="py-2 px-3 text-cyan-300">{formatPValue(sr.p_value)}</td>
                         <td className="py-2 px-3">{sr.effect_size_value !== null ? `${sr.effect_size_name || 'effect'}: ${sr.effect_size_value.toFixed(4)}` : "-"}</td>
                         <td className="py-2 px-3 font-sans">
                           {sr.is_significant ? <Badge variant="pass">Significant</Badge> : <Badge variant="neutral">Not Significant</Badge>}
@@ -483,11 +490,234 @@ export const ExperimentReportTab: React.FC<ExperimentReportTabProps> = ({ worksp
             )}
           </Card>
 
-          {/* 9. Provenance & Traceability */}
+          {/* 9. Two-Way Factorial Analyses (Module 9) */}
+          <Card className="p-5 bg-slate-900/70 border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
+                <Split className="w-4 h-4 text-cyan-400" />
+                <span>9. Two-Way Factorial Analyses ({factorial_analyses.length})</span>
+              </h4>
+              {factorial_analyses.length > 0 && (
+                <Badge variant="info">Module 9 ANOVA</Badge>
+              )}
+            </div>
+
+            {factorial_analyses.length === 0 ? (
+              <p className="text-xs text-slate-500 italic">No two-way factorial analyses recorded for this experiment.</p>
+            ) : (
+              <div className="space-y-6">
+                {factorial_analyses.map((fa) => (
+                  <div key={fa.comparison_id} className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-4 text-xs">
+                    {/* Header & Meta */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-slate-100 text-sm">{fa.comparison_name}</span>
+                          <Badge variant={fa.status === "completed" ? "pass" : "neutral"} className="text-[10px]">
+                            {fa.status}
+                          </Badge>
+                          {fa.is_balanced !== undefined && fa.is_balanced !== null && (
+                            <Badge variant={fa.is_balanced ? "pass" : "warning"} className="text-[10px]">
+                              {fa.is_balanced ? "Balanced Design" : "Unbalanced Design"}
+                            </Badge>
+                          )}
+                        </div>
+                        {fa.description && (
+                          <p className="text-slate-400 text-[11px] mt-0.5">{fa.description}</p>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-mono">
+                        Dataset: <span className="text-slate-200">{fa.dataset_name || "N/A"}</span>
+                      </div>
+                    </div>
+
+                    {/* Factor Details Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-900/60 rounded-lg border border-slate-800/60 text-[11px]">
+                      <div>
+                        <span className="text-slate-500 block">Factor A</span>
+                        <span className="font-semibold text-slate-200">{fa.factor_a_name || fa.factor_a_column}</span>
+                        <span className="text-slate-400 text-[10px] block font-mono">col: {fa.factor_a_column}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">Factor B</span>
+                        <span className="font-semibold text-slate-200">{fa.factor_b_name || fa.factor_b_column}</span>
+                        <span className="text-slate-400 text-[10px] block font-mono">col: {fa.factor_b_column}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">Response Variable</span>
+                        <span className="font-mono text-cyan-300 font-semibold">{fa.measurement_column}</span>
+                        <span className="text-slate-400 text-[10px] block">{fa.anova_type} SS</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">Threshold & Method</span>
+                        <span className="font-mono text-slate-200">α = {fa.alpha}</span>
+                        <span className="text-slate-400 text-[10px] block capitalize">{fa.post_hoc_method}</span>
+                      </div>
+                    </div>
+
+                    {/* Type III ANOVA Table */}
+                    <div className="space-y-1.5">
+                      <span className="font-semibold text-slate-300 text-[11px]">Type III ANOVA Results</span>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-800 text-slate-400 font-mono text-[11px]">
+                              <th className="py-2 px-3 font-semibold">Effect</th>
+                              <th className="py-2 px-3 font-semibold">Sum of Sq (SS)</th>
+                              <th className="py-2 px-3 font-semibold">df</th>
+                              <th className="py-2 px-3 font-semibold">Mean Sq (MS)</th>
+                              <th className="py-2 px-3 font-semibold">F-stat</th>
+                              <th className="py-2 px-3 font-semibold">p-value</th>
+                              <th className="py-2 px-3 font-semibold">Partial η² [95% CI]</th>
+                              <th className="py-2 px-3 font-semibold">Significant?</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300 text-[11px]">
+                            {fa.effects.map((eff, eidx) => (
+                              <tr key={eidx} className={eff.is_significant ? "bg-cyan-950/20" : ""}>
+                                <td className="py-2 px-3 font-sans font-bold text-slate-200">{eff.effect_name}</td>
+                                <td className="py-2 px-3">{eff.sum_sq.toFixed(4)}</td>
+                                <td className="py-2 px-3">{eff.df}</td>
+                                <td className="py-2 px-3">{eff.mean_sq !== null && eff.mean_sq !== undefined ? eff.mean_sq.toFixed(4) : "-"}</td>
+                                <td className="py-2 px-3 font-bold text-slate-100">{eff.f_statistic !== null && eff.f_statistic !== undefined ? eff.f_statistic.toFixed(4) : "-"}</td>
+                                <td className="py-2 px-3 text-cyan-300">{formatPValue(eff.p_value)}</td>
+                                <td className="py-2 px-3">
+                                  {eff.partial_eta_squared !== null && eff.partial_eta_squared !== undefined
+                                    ? `${eff.partial_eta_squared.toFixed(4)}${eff.partial_eta_squared_ci ? ` [${eff.partial_eta_squared_ci[0]?.toFixed(2)}, ${eff.partial_eta_squared_ci[1]?.toFixed(2)}]` : ""}`
+                                    : "-"}
+                                </td>
+                                <td className="py-2 px-3 font-sans">
+                                  {eff.is_significant ? <Badge variant="pass">Significant</Badge> : <Badge variant="neutral">Not Significant</Badge>}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Interaction Assessment Banner */}
+                    {fa.interaction_significant ? (
+                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 space-y-2 text-[11px]">
+                        <div className="font-semibold flex items-center space-x-1.5 text-amber-200">
+                          <Info className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Significant Interaction Effect (p &lt; α)</span>
+                        </div>
+                        <p className="leading-relaxed">
+                          Because the interaction between {fa.factor_a_name || fa.factor_a_column} and {fa.factor_b_name || fa.factor_b_column} is statistically significant, marginal main effects may be misleading. Conditional simple main effects decomposition:
+                        </p>
+                        {fa.simple_effects && fa.simple_effects.length > 0 && (
+                          <div className="overflow-x-auto mt-2">
+                            <table className="w-full text-left border-collapse text-[10px]">
+                              <thead>
+                                <tr className="border-b border-amber-500/20 text-amber-200/80">
+                                  <th className="py-1 px-2">Slice Factor</th>
+                                  <th className="py-1 px-2">Slice Level</th>
+                                  <th className="py-1 px-2">Target Factor</th>
+                                  <th className="py-1 px-2">F-statistic</th>
+                                  <th className="py-1 px-2">df (num/den)</th>
+                                  <th className="py-1 px-2">p-value</th>
+                                  <th className="py-1 px-2">Significant</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-amber-500/10 font-mono text-amber-100">
+                                {fa.simple_effects.map((se, sidx) => (
+                                  <tr key={sidx}>
+                                    <td className="py-1 px-2 font-sans">{se.slice_factor}</td>
+                                    <td className="py-1 px-2">{se.slice_level}</td>
+                                    <td className="py-1 px-2 font-sans">{se.target_factor}</td>
+                                    <td className="py-1 px-2 font-bold">{se.f_statistic ? se.f_statistic.toFixed(3) : "-"}</td>
+                                    <td className="py-1 px-2">{se.df_between ?? "-"}/{se.df_within ?? "-"}</td>
+                                    <td className="py-1 px-2">{formatPValue(se.p_value)}</td>
+                                    <td className="py-1 px-2 font-sans">{se.is_significant ? "Yes" : "No"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 space-y-1 text-[11px]">
+                        <span className="font-semibold text-slate-200 block">No Significant Interaction (p ≥ α)</span>
+                        <p className="text-slate-400">
+                          The interaction between factors is not statistically significant. Main effects can be interpreted across levels.
+                        </p>
+                        {fa.post_hoc_comparisons && fa.post_hoc_comparisons.length > 0 && (
+                          <div className="mt-2 text-[10px]">
+                            <span className="text-slate-300 font-semibold block mb-1">Marginal Post-Hoc Comparisons ({fa.post_hoc_method}):</span>
+                            <div className="flex flex-wrap gap-2">
+                              {fa.post_hoc_comparisons.map((ph, pidx) => (
+                                <span key={pidx} className="px-2 py-1 bg-slate-950 rounded border border-slate-800 font-mono">
+                                  {ph.factor ? `${ph.factor}: ` : ""}{ph.group1} vs {ph.group2}: diff={ph.mean_difference?.toFixed(3)}, p={formatPValue(ph.p_value_adjusted ?? ph.p_value)} {ph.is_significant ? "(*)" : ""}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Model Assumptions Diagnostics */}
+                    {fa.assumptions && fa.assumptions.length > 0 && (
+                      <div className="space-y-1.5">
+                        <span className="font-semibold text-slate-300 text-[11px]">Model Assumption Diagnostics</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {fa.assumptions.map((asm, aidx) => (
+                            <div key={aidx} className="p-2.5 rounded bg-slate-900/50 border border-slate-800 text-[11px] flex justify-between items-center">
+                              <div>
+                                <span className="font-medium text-slate-200 block">{asm.test_name || asm.name}</span>
+                                <span className="text-slate-400 text-[10px] font-mono">
+                                  stat: {asm.statistic !== null && asm.statistic !== undefined ? asm.statistic.toFixed(3) : "-"}, p: {formatPValue(asm.p_value)}
+                                </span>
+                              </div>
+                              <Badge variant={(asm.is_valid ?? asm.passed) ? "pass" : "warning"} className="text-[10px]">
+                                {(asm.is_valid ?? asm.passed) ? "No Violation" : "Warning"}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cell Sample Sizes */}
+                    {fa.cell_sample_sizes && Object.keys(fa.cell_sample_sizes).length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-slate-400 text-[11px]">Cell Sample Sizes (N_ij):</span>
+                        <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
+                          {Object.entries(fa.cell_sample_sizes).map(([cellKey, cellCount]) => (
+                            <span key={cellKey} className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                              {cellKey}: <strong className="text-cyan-300">{cellCount}</strong>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scientific Statement */}
+                    {fa.scientific_statement && (
+                      <div className="p-2.5 rounded bg-cyan-950/20 border border-cyan-800/30 text-cyan-200 text-[11px] leading-relaxed italic">
+                        &ldquo;{fa.scientific_statement}&rdquo;
+                      </div>
+                    )}
+
+                    {/* Provenance Footer */}
+                    <div className="text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-900 flex flex-wrap justify-between">
+                      <span>Analysis ID: {fa.analysis_id || "None"}</span>
+                      <span>Comparison ID: {fa.comparison_id}</span>
+                      <span>Recorded: {new Date(fa.created_at).toUTCString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* 10. Provenance & Traceability */}
           <Card className="p-5 bg-slate-900/70 border-slate-800 space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center space-x-2 border-b border-slate-800 pb-3">
               <History className="w-4 h-4 text-slate-400" />
-              <span>9. Provenance & Traceability Index ({provenance.length} Items)</span>
+              <span>10. Provenance & Traceability Index ({provenance.length} Items)</span>
             </h4>
 
             {provenance.length === 0 ? (
@@ -520,7 +750,7 @@ export const ExperimentReportTab: React.FC<ExperimentReportTabProps> = ({ worksp
             )}
           </Card>
 
-          {/* 10. Appendix / Disclaimer */}
+          {/* 11. Appendix / Disclaimer */}
           <Card className="p-4 bg-amber-500/10 border-amber-500/20 text-amber-300 text-xs flex items-start space-x-3">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
             <div>

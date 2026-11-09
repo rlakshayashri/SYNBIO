@@ -12,6 +12,8 @@ from app.core.exceptions import (
     DatasetParseError,
     DatasetTooLargeError,
     ExperimentNotFoundError,
+    FactorialComparisonNotFoundError,
+    FactorNotFoundError,
     ProjectNotFoundError,
     SynDataXError,
     UnsupportedFileTypeError,
@@ -77,6 +79,22 @@ def experiment_not_found_handler(request: Request, exc: ExperimentNotFoundError)
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content={"error": "ExperimentNotFoundError", "detail": exc.message},
+    )
+
+
+@app.exception_handler(FactorNotFoundError)
+def factor_not_found_handler(request: Request, exc: FactorNotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": "FactorNotFoundError", "detail": exc.message},
+    )
+
+
+@app.exception_handler(FactorialComparisonNotFoundError)
+def factorial_comparison_not_found_handler(request: Request, exc: FactorialComparisonNotFoundError) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": "FactorialComparisonNotFoundError", "detail": exc.message},
     )
 
 

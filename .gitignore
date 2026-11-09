@@ -29,6 +29,7 @@ node_modules/
 dist/
 build/
 .nuxt/
+*.tsbuildinfo
 
 # Local scientific datasets & storage
 backend/data/

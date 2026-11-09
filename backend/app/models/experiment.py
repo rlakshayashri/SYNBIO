@@ -12,7 +12,9 @@ if TYPE_CHECKING:
     from app.models.analysis import Analysis
     from app.models.comparison import Comparison
     from app.models.dataset import Dataset
+    from app.models.experimental_factor import ExperimentalFactor
     from app.models.experimental_group import ExperimentalGroup
+    from app.models.factorial_comparison import FactorialComparison
     from app.models.project import Project
 
 
@@ -59,4 +61,10 @@ class Experiment(Base):
         "Comparison", back_populates="experiment", cascade="all, delete-orphan"
     )
     analyses: Mapped[list["Analysis"]] = relationship("Analysis", back_populates="experiment")
+    factors: Mapped[list["ExperimentalFactor"]] = relationship(
+        "ExperimentalFactor", back_populates="experiment", cascade="all, delete-orphan"
+    )
+    factorial_comparisons: Mapped[list["FactorialComparison"]] = relationship(
+        "FactorialComparison", back_populates="experiment", cascade="all, delete-orphan"
+    )
 

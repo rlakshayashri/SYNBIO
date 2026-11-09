@@ -25,6 +25,22 @@ from app.schemas.experimental_group import (
     ExperimentalGroupResponse,
     ExperimentalGroupUpdate,
 )
+from app.schemas.factor import (
+    ExperimentalFactorBase,
+    ExperimentalFactorCreate,
+    ExperimentalFactorResponse,
+    ExperimentalFactorUpdate,
+    FactorLevelBase,
+    FactorLevelCreate,
+    FactorLevelResponse,
+    FactorLevelUpdate,
+)
+from app.schemas.factorial_comparison import (
+    FactorialComparisonBase,
+    FactorialComparisonCreate,
+    FactorialComparisonResponse,
+    FactorialComparisonUpdate,
+)
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from app.schemas.replicate import (
     ReplicateBase,
@@ -86,4 +102,16 @@ __all__ = [
     "ComparisonCreateRequest",
     "ComparisonResponse",
     "GroupDataSummary",
+    "ExperimentalFactorBase",
+    "ExperimentalFactorCreate",
+    "ExperimentalFactorUpdate",
+    "ExperimentalFactorResponse",
+    "FactorLevelBase",
+    "FactorLevelCreate",
+    "FactorLevelUpdate",
+    "FactorLevelResponse",
+    "FactorialComparisonBase",
+    "FactorialComparisonCreate",
+    "FactorialComparisonUpdate",
+    "FactorialComparisonResponse",
 ]

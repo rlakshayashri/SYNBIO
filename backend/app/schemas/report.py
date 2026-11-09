@@ -179,6 +179,69 @@ class ProvenanceReportItem(BaseModel):
     created_at: datetime
 
 
+class AnovaEffectReportItem(BaseModel):
+    """Single effect row in a Two-Way ANOVA results table."""
+
+    effect_name: str
+    df: float
+    sum_sq: float
+    mean_sq: float | None = None
+    f_statistic: float | None = None
+    p_value: float | None = None
+    is_significant: bool = False
+    partial_eta_squared: float | None = None
+    partial_eta_squared_ci: list[float] | None = None
+    effect_size_interpretation: str | None = None
+
+
+class FactorialAnalysisReportItem(BaseModel):
+    """Two-Way Factorial Analysis (Module 9) Item DTO for Scientific Report."""
+
+    comparison_id: UUID
+    analysis_id: UUID | None = None
+    comparison_name: str
+    description: str | None = None
+    status: str = "completed"
+    created_at: datetime
+
+    dataset_id: UUID | None = None
+    dataset_name: str | None = None
+
+    factor_a_id: UUID | None = None
+    factor_a_name: str | None = None
+    factor_a_column: str
+
+    factor_b_id: UUID | None = None
+    factor_b_name: str | None = None
+    factor_b_column: str
+
+    measurement_column: str
+
+    alpha: float = 0.05
+    post_hoc_method: str = "tukey"
+    contrast_coding: str = "sum-to-zero (deviation)"
+    anova_type: str = "Type III"
+    model_formula: str | None = None
+
+    total_rows_input: int | None = None
+    valid_rows_used: int | None = None
+    excluded_rows_count: int | None = None
+    exclusion_reasons: dict[str, int] = Field(default_factory=dict)
+    design_balance: str | None = None
+    is_balanced: bool | None = None
+    cell_sample_sizes: dict[str, int] = Field(default_factory=dict)
+
+    effects: list[AnovaEffectReportItem] = Field(default_factory=list)
+    interaction_significant: bool = False
+    assumptions: list[dict[str, Any]] = Field(default_factory=list)
+    post_hoc_comparisons: list[dict[str, Any]] = Field(default_factory=list)
+    simple_effects: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    scientific_statement: str | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    raw_result: dict[str, Any] = Field(default_factory=dict)
+
+
 class ExperimentReport(BaseModel):
     """Complete Deterministic Scientific Experiment Report DTO."""
 
@@ -189,6 +252,7 @@ class ExperimentReport(BaseModel):
     descriptive_statistics: list[DescriptiveStatisticsReportItem] = Field(default_factory=list)
     visualizations: list[VisualizationReportItem] = Field(default_factory=list)
     comparisons: list[ComparisonReportItem] = Field(default_factory=list)
+    factorial_analyses: list[FactorialAnalysisReportItem] = Field(default_factory=list)
     statistical_results: list[StatisticalResultReportItem] = Field(default_factory=list)
     provenance: list[ProvenanceReportItem] = Field(default_factory=list)
     generated_at: datetime

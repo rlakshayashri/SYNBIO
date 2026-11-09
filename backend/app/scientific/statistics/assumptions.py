@@ -42,10 +42,12 @@ def check_normality(series: pd.Series, variable_label: str = "variable", alpha: 
         p_val_float = float(p_val) if not np.isnan(p_val) else None
         passed = (p_val_float >= alpha) if p_val_float is not None else False
 
-        detail = (
-            f"{test_name} test: stat={stat_val:.4f}, p={p_val_float:.4f}. "
-            f"Data appears {'normally distributed' if passed else 'non-normal'} (alpha={alpha})."
+        norm_desc = (
+            "No significant departure from normality detected"
+            if passed
+            else "Significant departure from normality detected"
         )
+        detail = f"{test_name} test: stat={stat_val:.4f}, p={p_val_float:.4f}. {norm_desc} (alpha={alpha})."
         return AssumptionResult(
             name=f"Normality ({variable_label})",
             statistic=stat_val,
@@ -86,10 +88,12 @@ def check_homogeneity(groups_data: list[pd.Series], group_labels: list[str], alp
         p_val_float = float(p_val) if not np.isnan(p_val) else None
         passed = (p_val_float >= alpha) if p_val_float is not None else False
 
-        detail = (
-            f"Levene's test: stat={stat_val:.4f}, p={p_val_float:.4f}. "
-            f"Variances appear {'equal (homoscedastic)' if passed else 'unequal (heteroscedastic)'} (alpha={alpha})."
+        homo_desc = (
+            "No significant difference in group variances detected"
+            if passed
+            else "Significant difference in group variances detected (heteroscedasticity)"
         )
+        detail = f"Levene's test: stat={stat_val:.4f}, p={p_val_float:.4f}. {homo_desc} (alpha={alpha})."
         return AssumptionResult(
             name="Homogeneity of Variance (Levene)",
             statistic=stat_val,

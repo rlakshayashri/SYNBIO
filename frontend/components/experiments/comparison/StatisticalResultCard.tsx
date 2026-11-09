@@ -36,6 +36,12 @@ export const StatisticalResultCard: React.FC<StatisticalResultCardProps> = ({ co
     return Number(val.toFixed(precision)).toString();
   };
 
+  const formatPValue = (val: number | null | undefined): string => {
+    if (val === null || val === undefined) return "N/A";
+    if (val < 0.0001) return "< 0.0001";
+    return val.toFixed(4);
+  };
+
   return (
     <div className="space-y-6">
       {/* Evidence Statement Banner */}
@@ -69,7 +75,7 @@ export const StatisticalResultCard: React.FC<StatisticalResultCardProps> = ({ co
               statRes.is_significant ? "text-emerald-400" : "text-slate-200"
             }`}
           >
-            {formatNumber(statRes.p_value)}
+            {formatPValue(statRes.p_value)}
           </span>
         </div>
 
@@ -236,8 +242,8 @@ export const StatisticalResultCard: React.FC<StatisticalResultCardProps> = ({ co
                     <td className="py-2 px-3 font-sans font-medium text-slate-100">{ph.group1}</td>
                     <td className="py-2 px-3 font-sans font-medium text-slate-100">{ph.group2}</td>
                     <td className="py-2 px-3 text-right">{formatNumber(ph.statistic)}</td>
-                    <td className="py-2 px-3 text-right text-slate-400">{formatNumber(ph.p_raw)}</td>
-                    <td className="py-2 px-3 text-right text-cyan-300 font-semibold">{formatNumber(ph.p_adjusted)}</td>
+                    <td className="py-2 px-3 text-right text-slate-400">{formatPValue(ph.p_raw)}</td>
+                    <td className="py-2 px-3 text-right text-cyan-300 font-semibold">{formatPValue(ph.p_adjusted)}</td>
                     <td className="py-2 px-3 text-center">
                       {ph.is_significant ? (
                         <span className="text-emerald-400 font-bold text-[10px]">YES</span>

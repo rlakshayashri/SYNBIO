@@ -6,6 +6,8 @@ from app.services.dataset_service import DatasetService
 from app.services.experiment_dataset_service import ExperimentDatasetService
 from app.services.experiment_service import ExperimentService
 from app.services.experiment_workspace_service import ExperimentWorkspaceService
+from app.services.factor_service import FactorService
+from app.services.factorial_analysis_service import FactorialAnalysisService
 from app.services.group_service import GroupService
 from app.services.project_service import ProjectService
 from app.services.replicate_service import ReplicateService
@@ -28,5 +30,8 @@ __all__ = [
     "GroupService",
     "ReplicateService",
     "ComparisonService",
+    "FactorService",
+    "FactorialAnalysisService",
 ]
+
 

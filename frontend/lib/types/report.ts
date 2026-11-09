@@ -150,6 +150,67 @@ export interface ProvenanceReportItem {
   created_at: string;
 }
 
+export interface AnovaEffectReportItem {
+  effect_name: string;
+  df: number;
+  sum_sq: number;
+  mean_sq?: number | null;
+  f_statistic?: number | null;
+  p_value?: number | null;
+  is_significant: boolean;
+  partial_eta_squared?: number | null;
+  partial_eta_squared_ci?: number[] | null;
+  effect_size_interpretation?: string | null;
+}
+
+export interface FactorialAnalysisReportItem {
+  comparison_id: string;
+  analysis_id?: string | null;
+  comparison_name: string;
+  description?: string | null;
+  status: string;
+  created_at: string;
+  dataset_id?: string | null;
+  dataset_name?: string | null;
+  factor_a_id?: string | null;
+  factor_a_name?: string | null;
+  factor_a_column: string;
+  factor_b_id?: string | null;
+  factor_b_name?: string | null;
+  factor_b_column: string;
+  measurement_column: string;
+  alpha: number;
+  post_hoc_method: string;
+  contrast_coding: string;
+  anova_type: string;
+  model_formula?: string | null;
+  total_rows_input?: number | null;
+  valid_rows_used?: number | null;
+  excluded_rows_count?: number | null;
+  exclusion_reasons?: Record<string, number>;
+  design_balance?: string | null;
+  is_balanced?: boolean | null;
+  cell_sample_sizes?: Record<string, number>;
+  effects: AnovaEffectReportItem[];
+  interaction_significant: boolean;
+  assumptions?: Array<{
+    name?: string;
+    test_name: string;
+    statistic?: number | null;
+    p_value?: number | null;
+    passed?: boolean;
+    is_valid: boolean;
+    details?: string | null;
+    warning_message?: string | null;
+  }>;
+  post_hoc_comparisons?: Array<any>;
+  simple_effects?: Array<any>;
+  warnings?: string[];
+  scientific_statement?: string | null;
+  parameters: Record<string, any>;
+  raw_result: Record<string, any>;
+}
+
 export interface ExperimentReport {
   metadata: ExperimentReportHeader;
   experimental_context: ExperimentalContextReport;
@@ -158,6 +219,7 @@ export interface ExperimentReport {
   descriptive_statistics: DescriptiveStatisticsReportItem[];
   visualizations: VisualizationReportItem[];
   comparisons: ComparisonReportItem[];
+  factorial_analyses: FactorialAnalysisReportItem[];
   statistical_results: StatisticalResultReportItem[];
   provenance: ProvenanceReportItem[];
   generated_at: string;

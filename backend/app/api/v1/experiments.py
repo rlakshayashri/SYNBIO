@@ -16,6 +16,12 @@ from app.schemas.experimental_group import (
     ExperimentalGroupCreate,
     ExperimentalGroupResponse,
 )
+from app.schemas.factor import ExperimentalFactorCreate, ExperimentalFactorResponse
+from app.schemas.factorial_comparison import (
+    FactorialComparisonCreate,
+    FactorialComparisonResponse,
+    FactorialComparisonUpdate,
+)
 from app.schemas.replicate import ReplicateCreate, ReplicateResponse
 from app.schemas.report import ExperimentReport
 from app.schemas.results import ExperimentResultsResponse
@@ -25,6 +31,8 @@ from app.services.experiment_report_service import ExperimentReportService
 from app.services.experiment_results_service import ExperimentResultsService
 from app.services.experiment_service import ExperimentService
 from app.services.experiment_workspace_service import ExperimentWorkspaceService
+from app.services.factor_service import FactorService
+from app.services.factorial_analysis_service import FactorialAnalysisService
 from app.services.group_service import GroupService
 from app.services.replicate_service import ReplicateService
 
@@ -126,6 +134,172 @@ def run_comparison(
     """Executes group comparison and stores Analysis & Comparison records."""
     service = ComparisonService(db)
     return service.run_comparison(experiment_id, request)
+
+
+# --- Module 9: Experimental Factors ---
+
+
+@router.post(
+    "/{experiment_id}/factors",
+    response_model=ExperimentalFactorResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add Experimental Factor",
+)
+def add_experimental_factor(
+    experiment_id: UUID, schema: ExperimentalFactorCreate, db: Session = Depends(get_db)
+) -> ExperimentalFactorResponse:
+    """Adds a new ExperimentalFactor with optional initial levels to an experiment."""
+    service = FactorService(db)
+    return service.create_factor(experiment_id, schema)
+
+
+@router.get(
+    "/{experiment_id}/factors",
+    response_model=list[ExperimentalFactorResponse],
+    summary="List Experimental Factors",
+)
+def list_experimental_factors(
+    experiment_id: UUID, db: Session = Depends(get_db)
+) -> list[ExperimentalFactorResponse]:
+    """Lists all ExperimentalFactors for an experiment."""
+    service = FactorService(db)
+    return list(service.list_factors(experiment_id))
+
+
+@router.delete(
+    "/{experiment_id}/factors/{factor_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Experimental Factor",
+)
+def delete_experimental_factor(
+    experiment_id: UUID, factor_id: UUID, db: Session = Depends(get_db)
+) -> None:
+    """Deletes an ExperimentalFactor and cascades to its levels."""
+    service = FactorService(db)
+    success = service.delete_factor(experiment_id, factor_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Factor '{factor_id}' not found.")
+
+
+# --- Module 9: Factorial Comparison / Two-Way ANOVA Analysis ---
+
+
+@router.post(
+    "/{experiment_id}/factorial-comparisons",
+    response_model=FactorialComparisonResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Run Factorial Comparison",
+)
+@router.post(
+    "/{experiment_id}/factorial-analyses",
+    response_model=FactorialComparisonResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Run Factorial Analysis",
+    include_in_schema=False,
+)
+def run_factorial_comparison(
+    experiment_id: UUID, request: FactorialComparisonCreate, db: Session = Depends(get_db)
+) -> FactorialComparisonResponse:
+    """Executes Two-Way ANOVA factorial analysis and persists Analysis and FactorialComparison records."""
+    service = FactorialAnalysisService(db)
+    return service.run_factorial_analysis(experiment_id, request)
+
+
+@router.get(
+    "/{experiment_id}/factorial-comparisons",
+    response_model=list[FactorialComparisonResponse],
+    summary="List Factorial Comparisons",
+)
+@router.get(
+    "/{experiment_id}/factorial-analyses",
+    response_model=list[FactorialComparisonResponse],
+    summary="List Factorial Analyses",
+    include_in_schema=False,
+)
+def list_factorial_comparisons(
+    experiment_id: UUID, db: Session = Depends(get_db)
+) -> list[FactorialComparisonResponse]:
+    """Lists all factorial comparisons for an experiment."""
+    service = FactorialAnalysisService(db)
+    return list(service.list_by_experiment(experiment_id))
+
+
+@router.get(
+    "/{experiment_id}/factorial-comparisons/{comparison_id}",
+    response_model=FactorialComparisonResponse,
+    summary="Get Factorial Comparison",
+)
+@router.get(
+    "/{experiment_id}/factorial-analyses/{comparison_id}",
+    response_model=FactorialComparisonResponse,
+    summary="Get Factorial Analysis",
+    include_in_schema=False,
+)
+def get_factorial_comparison(
+    experiment_id: UUID, comparison_id: UUID, db: Session = Depends(get_db)
+) -> FactorialComparisonResponse:
+    """Retrieves a single factorial comparison and its results."""
+    service = FactorialAnalysisService(db)
+    fcomp = service.get_by_id(comparison_id, experiment_id=experiment_id)
+    if not fcomp:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Factorial comparison '{comparison_id}' not found for experiment '{experiment_id}'.",
+        )
+    return fcomp
+
+
+@router.patch(
+    "/{experiment_id}/factorial-comparisons/{comparison_id}",
+    response_model=FactorialComparisonResponse,
+    summary="Update Factorial Comparison",
+)
+@router.patch(
+    "/{experiment_id}/factorial-analyses/{comparison_id}",
+    response_model=FactorialComparisonResponse,
+    summary="Update Factorial Analysis",
+    include_in_schema=False,
+)
+def update_factorial_comparison(
+    experiment_id: UUID,
+    comparison_id: UUID,
+    schema: FactorialComparisonUpdate,
+    db: Session = Depends(get_db),
+) -> FactorialComparisonResponse:
+    """Updates metadata (name, description) of a factorial comparison."""
+    service = FactorialAnalysisService(db)
+    fcomp = service.update(comparison_id, schema, experiment_id=experiment_id)
+    if not fcomp:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Factorial comparison '{comparison_id}' not found for experiment '{experiment_id}'.",
+        )
+    return fcomp
+
+
+@router.delete(
+    "/{experiment_id}/factorial-comparisons/{comparison_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Factorial Comparison",
+)
+@router.delete(
+    "/{experiment_id}/factorial-analyses/{comparison_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Factorial Analysis",
+    include_in_schema=False,
+)
+def delete_factorial_comparison(
+    experiment_id: UUID, comparison_id: UUID, db: Session = Depends(get_db)
+) -> None:
+    """Deletes a factorial comparison and its linked analysis record."""
+    service = FactorialAnalysisService(db)
+    success = service.delete(comparison_id, experiment_id=experiment_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Factorial comparison '{comparison_id}' not found for experiment '{experiment_id}'.",
+        )
+
 
 
 @router.post(

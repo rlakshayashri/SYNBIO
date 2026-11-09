@@ -46,3 +46,16 @@ class ExperimentNotFoundError(SynDataXError):
     """Raised when a requested Experiment is not found."""
 
     pass
+
+
+class FactorNotFoundError(SynDataXError):
+    """Raised when an ExperimentalFactor is not found."""
+
+    pass
+
+
+class FactorialComparisonNotFoundError(SynDataXError):
+    """Raised when a FactorialComparison is not found."""
+
+    pass
+

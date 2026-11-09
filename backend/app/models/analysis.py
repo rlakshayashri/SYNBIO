@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.comparison import Comparison
     from app.models.dataset import Dataset
     from app.models.experiment import Experiment
+    from app.models.factorial_comparison import FactorialComparison
 
 JSONType = JSON().with_variant(JSONB, "postgresql")
 
@@ -45,4 +46,7 @@ class Analysis(Base):
     dataset: Mapped["Dataset"] = relationship("Dataset", back_populates="analyses")
     experiment: Mapped["Experiment | None"] = relationship("Experiment", back_populates="analyses")
     comparison: Mapped["Comparison | None"] = relationship("Comparison", back_populates="analysis", uselist=False)
+    factorial_comparison: Mapped["FactorialComparison | None"] = relationship(
+        "FactorialComparison", back_populates="analysis", uselist=False
+    )
 

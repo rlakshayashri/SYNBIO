@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -10,7 +11,9 @@ from app.models.comparison import Comparison
 from app.models.dataset import Dataset
 from app.models.experiment import Experiment
 from app.models.experimental_group import ExperimentalGroup
+from app.models.factorial_comparison import FactorialComparison
 from app.schemas.report import (
+    AnovaEffectReportItem,
     ComparisonReportItem,
     DataQualityReportItem,
     DatasetReportItem,
@@ -19,6 +22,7 @@ from app.schemas.report import (
     ExperimentalGroupReportItem,
     ExperimentReport,
     ExperimentReportHeader,
+    FactorialAnalysisReportItem,
     GroupReplicateReportItem,
     ProvenanceReportItem,
     StatisticalResultReportItem,
@@ -322,7 +326,7 @@ class ExperimentReportService:
                         degrees_of_freedom=float(dof) if dof is not None else None,
                         effect_size_name=str(eff_name) if eff_name else None,
                         effect_size_value=float(eff_val) if eff_val is not None else None,
-                        confidence_interval=[float(x) for x in ci] if isinstance(ci, (list, tuple)) else None,
+                        confidence_interval=[float(x) for x in ci] if isinstance(ci, list | tuple) else None,
                         is_significant=bool(is_sig) if is_sig is not None else None,
                         assumption_checks=assumption_checks if isinstance(assumption_checks, dict) else None,
                         raw_result=res,
@@ -381,6 +385,150 @@ class ExperimentReportService:
                 )
             )
 
+        # 11. Two-Way Factorial Analyses (Module 9)
+        fcomp_stmt = (
+            select(FactorialComparison)
+            .options(
+                joinedload(FactorialComparison.dataset),
+                joinedload(FactorialComparison.factor_a),
+                joinedload(FactorialComparison.factor_b),
+            )
+            .where(FactorialComparison.experiment_id == experiment_id)
+            .order_by(FactorialComparison.created_at.desc())
+        )
+        factorial_comparisons = list(self.db.scalars(fcomp_stmt).unique().all())
+
+        factorial_items: list[FactorialAnalysisReportItem] = []
+        for fc in factorial_comparisons:
+            res = fc.result_summary or {}
+            params = fc.parameters or {}
+
+            ds_name = fc.dataset.name if fc.dataset else None
+            if not ds_name and fc.dataset_id:
+                ds_match = next((d.dataset_name for d in dataset_items if d.dataset_id == fc.dataset_id), None)
+                ds_name = ds_match or "Attached Dataset"
+
+            effects_raw = res.get("effects") or {}
+            effects_list: list[AnovaEffectReportItem] = []
+            if isinstance(effects_raw, dict):
+                for eff_key, eff_data in effects_raw.items():
+                    if isinstance(eff_data, dict):
+                        effects_list.append(
+                            AnovaEffectReportItem(
+                                effect_name=eff_data.get("effect_name", eff_key),
+                                df=float(eff_data.get("df", 0.0)),
+                                sum_sq=float(eff_data.get("sum_sq", 0.0)),
+                                mean_sq=float(eff_data["mean_sq"]) if eff_data.get("mean_sq") is not None else None,
+                                f_statistic=float(eff_data["f_statistic"])
+                                if eff_data.get("f_statistic") is not None
+                                else None,
+                                p_value=float(eff_data["p_value"]) if eff_data.get("p_value") is not None else None,
+                                is_significant=bool(eff_data.get("is_significant", False)),
+                                partial_eta_squared=float(eff_data["partial_eta_squared"])
+                                if eff_data.get("partial_eta_squared") is not None
+                                else None,
+                                partial_eta_squared_ci=[float(x) for x in eff_data["partial_eta_squared_ci"]]
+                                if isinstance(eff_data.get("partial_eta_squared_ci"), list | tuple)
+                                else None,
+                                effect_size_interpretation=eff_data.get("effect_size_interpretation"),
+                            )
+                        )
+
+            alpha_val = float(params.get("alpha") or res.get("alpha") or 0.05)
+            post_hoc_val = str(params.get("post_hoc_method") or res.get("post_hoc_method") or "tukey")
+            coding_val = str(params.get("contrast_coding") or res.get("contrast_coding") or "sum-to-zero (deviation)")
+            anova_type_val = str(res.get("anova_type") or "Type III")
+
+            raw_assumptions = res.get("assumptions") or []
+            assumptions_val: list[dict[str, Any]] = []
+            if isinstance(raw_assumptions, list):
+                for asm in raw_assumptions:
+                    if isinstance(asm, dict):
+                        tname = asm.get("name") or asm.get("test_name") or "Assumption"
+                        is_p = asm.get("passed") if "passed" in asm else asm.get("is_valid", False)
+                        dtls = asm.get("details") or asm.get("warning_message") or ""
+                        assumptions_val.append(
+                            {
+                                **asm,
+                                "name": tname,
+                                "test_name": tname,
+                                "passed": is_p,
+                                "is_valid": is_p,
+                                "details": dtls,
+                                "warning_message": dtls,
+                            }
+                        )
+
+            post_hoc_comps = res.get("post_hoc_comparisons") or []
+            if not isinstance(post_hoc_comps, list):
+                post_hoc_comps = []
+
+            simple_effs = res.get("simple_effects") or []
+            if not isinstance(simple_effs, list):
+                simple_effs = []
+
+            warnings_val = res.get("warnings") or []
+            if not isinstance(warnings_val, list):
+                warnings_val = []
+
+            factorial_items.append(
+                FactorialAnalysisReportItem(
+                    comparison_id=fc.id,
+                    analysis_id=fc.analysis_id,
+                    comparison_name=fc.name,
+                    description=fc.description,
+                    status=fc.status,
+                    created_at=fc.created_at,
+                    dataset_id=fc.dataset_id,
+                    dataset_name=ds_name,
+                    factor_a_id=fc.factor_a_id,
+                    factor_a_name=fc.factor_a.name if fc.factor_a else None,
+                    factor_a_column=fc.factor_a_column,
+                    factor_b_id=fc.factor_b_id,
+                    factor_b_name=fc.factor_b.name if fc.factor_b else None,
+                    factor_b_column=fc.factor_b_column,
+                    measurement_column=fc.measurement_column,
+                    alpha=alpha_val,
+                    post_hoc_method=post_hoc_val,
+                    contrast_coding=coding_val,
+                    anova_type=anova_type_val,
+                    model_formula=res.get("model_formula"),
+                    total_rows_input=res.get("total_rows_input"),
+                    valid_rows_used=res.get("valid_rows_used"),
+                    excluded_rows_count=res.get("excluded_rows_count"),
+                    exclusion_reasons=res.get("exclusion_reasons")
+                    if isinstance(res.get("exclusion_reasons"), dict)
+                    else {},
+                    design_balance=res.get("design_balance"),
+                    is_balanced=res.get("is_balanced"),
+                    cell_sample_sizes=res.get("cell_sample_sizes")
+                    if isinstance(res.get("cell_sample_sizes"), dict)
+                    else {},
+                    effects=effects_list,
+                    interaction_significant=bool(res.get("interaction_significant", False)),
+                    assumptions=assumptions_val,
+                    post_hoc_comparisons=post_hoc_comps,
+                    simple_effects=simple_effs,
+                    warnings=warnings_val,
+                    scientific_statement=res.get("scientific_statement"),
+                    parameters=params,
+                    raw_result=res,
+                )
+            )
+
+            provenance_items.append(
+                ProvenanceReportItem(
+                    section="factorial_analyses",
+                    comparison_id=fc.id,
+                    analysis_id=fc.analysis_id,
+                    dataset_id=fc.dataset_id,
+                    dataset_name=ds_name,
+                    experiment_id=experiment.id,
+                    software_version="0.1.0",
+                    created_at=fc.created_at,
+                )
+            )
+
         return ExperimentReport(
             metadata=header,
             experimental_context=exp_context,
@@ -389,6 +537,7 @@ class ExperimentReportService:
             descriptive_statistics=desc_stats_items,
             visualizations=vis_items,
             comparisons=comparison_items,
+            factorial_analyses=factorial_items,
             statistical_results=stat_result_items,
             provenance=provenance_items,
             generated_at=now_utc,
@@ -397,6 +546,13 @@ class ExperimentReportService:
     def render_markdown(self, report: ExperimentReport) -> str:
         """Renders the structured ExperimentReport DTO into human-readable Markdown text."""
         md: list[str] = []
+
+        def _fmt_p(p: float | None) -> str:
+            if p is None:
+                return "-"
+            if p < 0.0001:
+                return "< 0.0001"
+            return f"{p:.4f}"
 
         m = report.metadata
         md.append(f"# Scientific Report: {m.experiment_name}\n")
@@ -532,7 +688,7 @@ class ExperimentReportService:
                 test_s = sr.test_name or sr.analysis_type
                 stat_val = sr.statistic_value
                 stat_str = f"{sr.statistic_name or 'stat'}={stat_val:.4f}" if stat_val is not None else "-"
-                pval_str = f"{sr.p_value:.4e}" if sr.p_value is not None else "-"
+                pval_str = _fmt_p(sr.p_value)
                 eff_val = sr.effect_size_value
                 eff_str = f"{sr.effect_size_name or 'effect'}={eff_val:.4f}" if eff_val is not None else "-"
                 sig_str = "Yes" if sr.is_significant else ("No" if sr.is_significant is False else "-")
@@ -541,8 +697,200 @@ class ExperimentReportService:
                 )
             md.append("")
 
-        # 9. Provenance & Reproducibility
-        md.append("## 9. Provenance & Reproducibility\n")
+        # 9. Two-Way Factorial Analyses (Module 9)
+        md.append("## 9. Two-Way Factorial Analyses\n")
+        if not report.factorial_analyses:
+            md.append("*No two-way factorial analyses recorded for this experiment.*\n")
+        else:
+            for fa in report.factorial_analyses:
+                md.append(f"### Factorial Comparison: {fa.comparison_name} (`{fa.comparison_id}`)\n")
+                if fa.description:
+                    md.append(f"*{fa.description}*\n")
+
+                md.append(f"- **Dataset:** {fa.dataset_name or 'N/A'} (ID: `{fa.dataset_id or 'None'}`)")
+                if fa.analysis_id:
+                    md.append(f"- **Analysis Record ID:** `{fa.analysis_id}`")
+                f_a_display = (
+                    f"{fa.factor_a_name} (`{fa.factor_a_column}`)"
+                    if fa.factor_a_name
+                    else f"`{fa.factor_a_column}`"
+                )
+                f_b_display = (
+                    f"{fa.factor_b_name} (`{fa.factor_b_column}`)"
+                    if fa.factor_b_name
+                    else f"`{fa.factor_b_column}`"
+                )
+                md.append(f"- **Factor A:** {f_a_display}")
+                md.append(f"- **Factor B:** {f_b_display}")
+                md.append(f"- **Measurement / Response Column:** `{fa.measurement_column}`")
+                md.append(f"- **Model Formula:** `{fa.model_formula or 'Two-Factor Full Factorial'}`")
+                md.append(f"- **ANOVA Type:** {fa.anova_type} (Contrasts: {fa.contrast_coding})")
+                md.append(f"- **Significance Threshold (α):** {fa.alpha}")
+                md.append(f"- **Post-Hoc Adjustment:** {fa.post_hoc_method.title()}")
+                bal_str = fa.design_balance.title() if fa.design_balance else "Unknown"
+                md.append(
+                    f"- **Design Balance:** {bal_str} (Input Rows: {fa.total_rows_input or '-'}, "
+                    f"Valid Used: {fa.valid_rows_used or '-'}, Excluded: {fa.excluded_rows_count or 0})"
+                )
+                if fa.exclusion_reasons:
+                    reasons_str = ", ".join(
+                        f"{k}: {v}" for k, v in fa.exclusion_reasons.items() if v > 0
+                    )
+                    if reasons_str:
+                        md.append(f"- **Exclusion Accounting:** {reasons_str}")
+                md.append("")
+
+                # ANOVA Table
+                md.append("#### Type III ANOVA Table")
+                if not fa.effects:
+                    md.append("*No effect results available.*")
+                else:
+                    md.append(
+                        "| Effect | Sum of Sq | df | Mean Sq | F-statistic | p-value | Partial η² [95% CI] | Sig? |"
+                    )
+                    md.append("|:---|:---|:---|:---|:---|:---|:---|:---|")
+                    for eff in fa.effects:
+                        ss_s = f"{eff.sum_sq:.4f}"
+                        df_s = f"{eff.df:.1f}" if eff.df.is_integer() else f"{eff.df:.2f}"
+                        ms_s = f"{eff.mean_sq:.4f}" if eff.mean_sq is not None else "-"
+                        f_s = f"{eff.f_statistic:.4f}" if eff.f_statistic is not None else "-"
+                        p_s = _fmt_p(eff.p_value)
+                        if eff.partial_eta_squared is not None:
+                            if eff.partial_eta_squared_ci and len(eff.partial_eta_squared_ci) == 2:
+                                eta_s = (
+                                    f"{eff.partial_eta_squared:.4f} "
+                                    f"[{eff.partial_eta_squared_ci[0]:.3f}, {eff.partial_eta_squared_ci[1]:.3f}]"
+                                )
+                            else:
+                                eta_s = f"{eff.partial_eta_squared:.4f}"
+                        else:
+                            eta_s = "-"
+                        sig_s = "Yes" if eff.is_significant else "No"
+                        md.append(
+                            f"| **{eff.effect_name}** | {ss_s} | {df_s} | {ms_s} | {f_s} | {p_s} | {eta_s} | {sig_s} |"
+                        )
+                md.append("")
+
+                # Interaction & Conditional Breakdown
+                md.append("#### Interaction Assessment & Interpretation")
+                if fa.interaction_significant:
+                    md.append(
+                        "> **Significant Interaction Detected:** The interaction between Factor A and Factor B is "
+                        "statistically significant (p < α). Because the effect of one factor varies across levels "
+                        "of the other, marginal main effects can be misleading. "
+                        "Conditional simple main effects are reported below:\n"
+                    )
+                    if fa.simple_effects:
+                        md.append(
+                            "| Slice Factor | Level | Target Factor | F-stat | df (num/den) | p-value | Sig? |"
+                        )
+                        md.append("|:---|:---|:---|:---|:---|:---|:---|")
+                        for se in fa.simple_effects:
+                            f_val = se.get("f_statistic")
+                            f_str = f"{f_val:.4f}" if f_val is not None else "-"
+                            df_b = se.get("df_between")
+                            df_w = se.get("df_within")
+                            df_str = (
+                                f"{df_b:.0f}/{df_w:.0f}"
+                                if (df_b is not None and df_w is not None)
+                                else "-"
+                            )
+                            p_val = se.get("p_value")
+                            p_str = _fmt_p(p_val)
+                            sig_str = "Yes" if se.get("is_significant") else "No"
+                            md.append(
+                                f"| `{se.get('slice_factor')}` | `{se.get('slice_level')}` | "
+                                f"`{se.get('target_factor')}` | {f_str} | {df_str} | {p_str} | {sig_str} |"
+                            )
+                        md.append("")
+                else:
+                    md.append(
+                        "> **No Significant Interaction:** The Factor A × Factor B interaction is not statistically "
+                        "significant (p ≥ α). Main effects can be interpreted across levels of the other factor.\n"
+                    )
+                    if fa.post_hoc_comparisons:
+                        md.append(
+                            f"##### Marginal Post-Hoc Pairwise Comparisons ({fa.post_hoc_method.title()})"
+                        )
+                        md.append(
+                            "| Factor | Comparison | Mean Diff | Adjusted p-value | 95% CI | Significant? |"
+                        )
+                        md.append("|:---|:---|:---|:---|:---|:---|")
+                        for ph in fa.post_hoc_comparisons:
+                            fac = ph.get("factor", "-")
+                            g1 = ph.get("group1", "")
+                            g2 = ph.get("group2", "")
+                            diff = ph.get("mean_difference")
+                            diff_s = f"{diff:.4f}" if diff is not None else "-"
+                            p_val = ph.get("p_value_adjusted") or ph.get("p_value")
+                            p_s = _fmt_p(p_val)
+                            ci = ph.get("ci_95") or ph.get("confidence_interval")
+                            ci_s = (
+                                f"[{ci[0]:.3f}, {ci[1]:.3f}]"
+                                if (isinstance(ci, list | tuple) and len(ci) == 2)
+                                else "-"
+                            )
+                            sig_s = "Yes" if ph.get("is_significant") else "No"
+                            md.append(
+                                f"| `{fac}` | `{g1} vs {g2}` | {diff_s} | {p_s} | {ci_s} | {sig_s} |"
+                            )
+                        md.append("")
+
+                # Assumption Diagnostics
+                if fa.assumptions:
+                    md.append("#### Model Assumption Diagnostics")
+                    md.append(
+                        "| Assumption Test | Statistic | p-value | Assessment | Details / Guidance |"
+                    )
+                    md.append("|:---|:---|:---|:---|:---|")
+                    for asm in fa.assumptions:
+                        tname = asm.get("name") or asm.get("test_name", "Test")
+                        st = asm.get("statistic")
+                        st_s = f"{st:.4f}" if st is not None else "-"
+                        pv = asm.get("p_value")
+                        pv_s = _fmt_p(pv)
+                        is_v = asm.get("passed") if "passed" in asm else asm.get("is_valid", False)
+                        status_s = "No violation detected" if is_v else "Violation detected"
+                        warn = asm.get("details") or asm.get("warning_message") or (
+                            "No evidence of violation"
+                            if is_v
+                            else "Potential departure from assumption"
+                        )
+                        md.append(f"| {tname} | {st_s} | {pv_s} | {status_s} | {warn} |")
+                    md.append(
+                        "\n> *Note: Diagnostic tests evaluate departure from standard ANOVA assumptions "
+                        "but do not prove that underlying distributional assumptions are strictly met. "
+                        "Interpretation should consider experimental design and biological sample size.*\n"
+                    )
+
+                # Cell Sample Sizes
+                if fa.cell_sample_sizes:
+                    md.append("#### Factorial Design Cell Sample Sizes")
+                    md.append("| Cell (Factor A × Factor B) | Replicates (N) |")
+                    md.append("|:---|:---|")
+                    for cell_k, cell_n in sorted(fa.cell_sample_sizes.items()):
+                        md.append(f"| `{cell_k}` | {cell_n} |")
+                    md.append("")
+
+                # Scientific Statement
+                if fa.scientific_statement:
+                    md.append("#### Scientific Statement")
+                    md.append(f"> {fa.scientific_statement}\n")
+
+                # Warnings
+                if fa.warnings:
+                    md.append("#### Warnings & Analysis Limitations")
+                    for w in fa.warnings:
+                        md.append(f"- ⚠️ {w}")
+                    md.append("")
+
+                md.append(
+                    f"*Provenance: Analysis Record `{fa.analysis_id or 'None'}`, Comparison `{fa.comparison_id}`, "
+                    f"created at {fa.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')}.*\n"
+                )
+
+        # 10. Provenance & Reproducibility
+        md.append("## 10. Provenance & Reproducibility\n")
         if not report.provenance:
             md.append("*No analysis provenance items recorded.*\n")
         else:
@@ -558,8 +906,8 @@ class ExperimentReportService:
                 )
             md.append("")
 
-        # 10. Appendix & Scientific Disclaimer
-        md.append("## 10. Appendix & Limitations\n")
+        # 11. Appendix & Scientific Disclaimer
+        md.append("## 11. Appendix & Limitations\n")
         md.append(f"> {report.disclaimer}\n")
 
         return "\n".join(md)

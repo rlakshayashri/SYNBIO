@@ -14,6 +14,13 @@ import {
   Replicate,
   ReplicateCreate,
 } from "../types/experiment";
+import {
+  ExperimentalFactor,
+  ExperimentalFactorCreate,
+  FactorialComparison,
+  FactorialComparisonCreate,
+  FactorialComparisonUpdate,
+} from "../types/factorial";
 
 export async function createExperiment(data: ExperimentCreate): Promise<Experiment> {
   return apiRequest<Experiment>("/experiments", {
@@ -190,6 +197,85 @@ export async function downloadExperimentReportExport(
   a.remove();
   window.URL.revokeObjectURL(downloadUrl);
 }
+
+// --- Module 9: Experimental Factors ---
+
+export async function getExperimentalFactors(experimentId: string): Promise<ExperimentalFactor[]> {
+  return apiRequest<ExperimentalFactor[]>(`/experiments/${experimentId}/factors`);
+}
+
+export async function createExperimentalFactor(
+  experimentId: string,
+  data: ExperimentalFactorCreate
+): Promise<ExperimentalFactor> {
+  return apiRequest<ExperimentalFactor>(`/experiments/${experimentId}/factors`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteExperimentalFactor(
+  experimentId: string,
+  factorId: string
+): Promise<void> {
+  return apiRequest<void>(`/experiments/${experimentId}/factors/${factorId}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Module 9: Factorial Comparisons ---
+
+export async function runFactorialComparison(
+  experimentId: string,
+  data: FactorialComparisonCreate
+): Promise<FactorialComparison> {
+  return apiRequest<FactorialComparison>(`/experiments/${experimentId}/factorial-comparisons`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getFactorialComparisons(
+  experimentId: string
+): Promise<FactorialComparison[]> {
+  return apiRequest<FactorialComparison[]>(`/experiments/${experimentId}/factorial-comparisons`);
+}
+
+export async function getFactorialComparison(
+  experimentId: string,
+  comparisonId: string
+): Promise<FactorialComparison> {
+  return apiRequest<FactorialComparison>(
+    `/experiments/${experimentId}/factorial-comparisons/${comparisonId}`
+  );
+}
+
+export async function updateFactorialComparison(
+  experimentId: string,
+  comparisonId: string,
+  data: FactorialComparisonUpdate
+): Promise<FactorialComparison> {
+  return apiRequest<FactorialComparison>(
+    `/experiments/${experimentId}/factorial-comparisons/${comparisonId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+export async function deleteFactorialComparison(
+  experimentId: string,
+  comparisonId: string
+): Promise<void> {
+  return apiRequest<void>(
+    `/experiments/${experimentId}/factorial-comparisons/${comparisonId}`,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
 
 
 
